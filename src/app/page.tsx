@@ -190,6 +190,10 @@ export default function Home() {
       console.log(`🔍 Buscando por: "${searchTerm.trim()}" (sem acentos: "${searchTermNoAccents}")`)
       console.log(`📊 Dados disponíveis - Catecismo: ${documentsData.catecismo.length}, Direito Canônico: ${documentsData.direito_canonico.length}`)
 
+      // Sets para rastrear parágrafos/cânones já adicionados
+      const addedParagraphs = new Set<string>()
+      const addedCanons = new Set<string>()
+
       // Buscar no catecismo
       let catecismoMatches = 0
       documentsData.catecismo.forEach((entry: SearchEntry, index: number) => {
@@ -197,27 +201,33 @@ export default function Home() {
         if (textNoAccents.includes(searchTermNoAccents)) {
           catecismoMatches++
           
-          // Contexto seguro
-          const beforeLines = documentsData.catecismo
-            .slice(Math.max(0, index - 2), index)
-            .map(e => e.text)
-            .filter(text => text && text.length > 5);
-          
-          const afterLines = documentsData.catecismo
-            .slice(index + 1, Math.min(documentsData.catecismo.length, index + 3))
-            .map(e => e.text)
-            .filter(text => text && text.length > 5);
+          // Verifica se o parágrafo já foi adicionado
+          const paragraphKey = entry.paragraph || `line-${entry.lineNumber}`
+          if (!addedParagraphs.has(paragraphKey)) {
+            addedParagraphs.add(paragraphKey)
             
-          results.push({
-            text: entry.text,
-            document: 'catecismo',
-            lineNumber: entry.lineNumber,
-            paragraph: entry.paragraph,
-            context: {
-              before: beforeLines,
-              after: afterLines
-            }
-          })
+            // Contexto seguro
+            const beforeLines = documentsData.catecismo
+              .slice(Math.max(0, index - 2), index)
+              .map(e => e.text)
+              .filter(text => text && text.length > 5);
+            
+            const afterLines = documentsData.catecismo
+              .slice(index + 1, Math.min(documentsData.catecismo.length, index + 3))
+              .map(e => e.text)
+              .filter(text => text && text.length > 5);
+              
+            results.push({
+              text: entry.text,
+              document: 'catecismo',
+              lineNumber: entry.lineNumber,
+              paragraph: entry.paragraph,
+              context: {
+                before: beforeLines,
+                after: afterLines
+              }
+            })
+          }
         }
       })
 
@@ -228,31 +238,38 @@ export default function Home() {
         if (textNoAccents.includes(searchTermNoAccents)) {
           direitoMatches++
           
-          // Contexto seguro
-          const beforeLines = documentsData.direito_canonico
-            .slice(Math.max(0, index - 2), index)
-            .map(e => e.text)
-            .filter(text => text && text.length > 5);
-          
-          const afterLines = documentsData.direito_canonico
-            .slice(index + 1, Math.min(documentsData.direito_canonico.length, index + 3))
-            .map(e => e.text)
-            .filter(text => text && text.length > 5);
+          // Verifica se o cânone já foi adicionado
+          const canonKey = entry.canon || `line-${entry.lineNumber}`
+          if (!addedCanons.has(canonKey)) {
+            addedCanons.add(canonKey)
             
-          results.push({
-            text: entry.text,
-            document: 'direito_canonico',
-            lineNumber: entry.lineNumber,
-            canon: entry.canon,
-            context: {
-              before: beforeLines,
-              after: afterLines
-            }
-          })
+            // Contexto seguro
+            const beforeLines = documentsData.direito_canonico
+              .slice(Math.max(0, index - 2), index)
+              .map(e => e.text)
+              .filter(text => text && text.length > 5);
+            
+            const afterLines = documentsData.direito_canonico
+              .slice(index + 1, Math.min(documentsData.direito_canonico.length, index + 3))
+              .map(e => e.text)
+              .filter(text => text && text.length > 5);
+              
+            results.push({
+              text: entry.text,
+              document: 'direito_canonico',
+              lineNumber: entry.lineNumber,
+              canon: entry.canon,
+              context: {
+                before: beforeLines,
+                after: afterLines
+              }
+            })
+          }
         }
       })
 
-      console.log(`📊 Matches encontrados: Catecismo: ${catecismoMatches}, Direito Canônico: ${direitoMatches}, Total: ${results.length}`)
+      console.log(`📊 Matches encontrados: Catecismo: ${catecismoMatches}, Direito Canônico: ${direitoMatches}`)
+      console.log(`🔧 Após deduplicação: ${results.length} resultados únicos (parágrafos/cânones únicos: ${addedParagraphs.size + addedCanons.size})`)
 
       const response: SearchResponse = {
         searchTerm: searchTerm.trim(),
