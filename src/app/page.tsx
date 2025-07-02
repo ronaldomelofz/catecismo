@@ -4,7 +4,7 @@ import { useState, useEffect, FormEvent } from 'react'
 import { Card, CardContent, CardHeader } from '@/components/ui/card'
 import { Input } from '@/components/ui/input'
 import { Button } from '@/components/ui/button'
-import { Search, Loader2, Moon, Sun, Book, Scale, ExternalLink, AlertCircle, X, Eye } from 'lucide-react'
+import { Search, Loader2, Moon, Sun, Book, Scale, ExternalLink, AlertCircle, X, Eye, Download } from 'lucide-react'
 
 interface SearchEntry {
   text: string;
@@ -532,6 +532,41 @@ export default function Home() {
                     <Scale className="h-3 w-3 sm:h-4 sm:w-4 flex-shrink-0" />
                     <span className="truncate">Direito Canônico - PDF Oficial</span>
                     <ExternalLink className="h-3 w-3 sm:h-4 sm:w-4 flex-shrink-0" />
+                  </a>
+                </div>
+              </div>
+              
+              {/* Downloads dos PDFs */}
+              <div className="text-center">
+                <p className={`text-xs sm:text-sm mb-2 sm:mb-3 font-medium transition-colors duration-300 ${
+                  isDarkMode ? 'text-gray-300' : 'text-gray-600'
+                }`}>Download dos documentos (PDF):</p>
+                <div className="flex flex-col sm:flex-row justify-center gap-2 sm:gap-4">
+                  <a 
+                    href="/catecismo.pdf" 
+                    download="Catecismo_da_Igreja_Catolica.pdf"
+                    className={`inline-flex items-center justify-center gap-2 px-3 sm:px-4 py-2 rounded-lg transition-colors text-xs sm:text-sm font-medium border-2 ${
+                      isDarkMode 
+                        ? 'border-blue-500 text-blue-400 hover:bg-blue-500 hover:text-white' 
+                        : 'border-blue-600 text-blue-600 hover:bg-blue-600 hover:text-white'
+                    }`}
+                  >
+                    <Book className="h-3 w-3 sm:h-4 sm:w-4 flex-shrink-0" />
+                    <span className="truncate">Catecismo PDF (2.4MB)</span>
+                    <Download className="h-3 w-3 sm:h-4 sm:w-4 flex-shrink-0" />
+                  </a>
+                  <a 
+                    href="/direito_canonico.pdf" 
+                    download="Codigo_de_Direito_Canonico.pdf"
+                    className={`inline-flex items-center justify-center gap-2 px-3 sm:px-4 py-2 rounded-lg transition-colors text-xs sm:text-sm font-medium border-2 ${
+                      isDarkMode 
+                        ? 'border-purple-500 text-purple-400 hover:bg-purple-500 hover:text-white' 
+                        : 'border-purple-600 text-purple-600 hover:bg-purple-600 hover:text-white'
+                    }`}
+                  >
+                    <Scale className="h-3 w-3 sm:h-4 sm:w-4 flex-shrink-0" />
+                    <span className="truncate">Direito Canônico PDF (5.9MB)</span>
+                    <Download className="h-3 w-3 sm:h-4 sm:w-4 flex-shrink-0" />
                   </a>
                 </div>
               </div>
