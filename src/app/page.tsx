@@ -74,6 +74,11 @@ export default function Home() {
   } | null>(null)
   const [isLoadingIntegral, setIsLoadingIntegral] = useState(false)
 
+  // Função para remover acentos
+  const removeAccents = (str: string) => {
+    return str.normalize("NFD").replace(/[\u0300-\u036f]/g, "")
+  }
+
   // Carregar dados dos documentos
   useEffect(() => {
     const loadDocuments = async () => {
@@ -115,6 +120,19 @@ export default function Home() {
           direito_canonico: documentsData.direito_canonico.length + ' entradas',
           metadata: metadataData
         })
+        
+        // Log adicional para debug
+        console.log('🔍 DEBUG - Primeiras 3 entradas do Catecismo:', documentsData.catecismo.slice(0, 3))
+        console.log('🔍 DEBUG - Primeiras 3 entradas do Direito Canônico:', documentsData.direito_canonico.slice(0, 3))
+        
+        // Teste de busca específica por matrimoni
+        const testMatches = documentsData.direito_canonico.filter((entry: SearchEntry) => 
+          entry.text.toLowerCase().includes('matrimoni')
+        )
+        console.log(`🔍 DEBUG - Teste matrimoni no Direito Canônico: ${testMatches.length} entradas encontradas`)
+        if (testMatches.length > 0) {
+          console.log('🔍 DEBUG - Primeira entrada com matrimoni:', testMatches[0])
+        }
         
       } catch (error) {
         console.error('❌ Erro ao carregar documentos:', error)
@@ -167,22 +185,28 @@ export default function Home() {
     try {
       const results: SearchResult[] = []
       const searchRegex = new RegExp(searchTerm.trim(), 'gi')
+      const searchTermNoAccents = removeAccents(searchTerm.trim().toLowerCase())
 
-      console.log(`🔍 Buscando por: "${searchTerm.trim()}"`)
+      console.log(`🔍 Buscando por: "${searchTerm.trim()}" (sem acentos: "${searchTermNoAccents}")`)
+      console.log(`📊 Dados disponíveis - Catecismo: ${documentsData.catecismo.length}, Direito Canônico: ${documentsData.direito_canonico.length}`)
 
       // Buscar no catecismo
+      let catecismoMatches = 0
       documentsData.catecismo.forEach((entry: SearchEntry, index: number) => {
-        if (searchRegex.test(entry.text)) {
-          // Pega mais contexto (2-3 linhas antes e depois)
+        const textNoAccents = removeAccents(entry.text.toLowerCase())
+        if (textNoAccents.includes(searchTermNoAccents)) {
+          catecismoMatches++
+          
+          // Contexto seguro
           const beforeLines = documentsData.catecismo
-            .slice(Math.max(0, index - 3), index)
+            .slice(Math.max(0, index - 2), index)
             .map(e => e.text)
-            .filter(text => text.length > 20); // Filtra linhas muito curtas
+            .filter(text => text && text.length > 5);
           
           const afterLines = documentsData.catecismo
-            .slice(index + 1, Math.min(documentsData.catecismo.length, index + 4))
+            .slice(index + 1, Math.min(documentsData.catecismo.length, index + 3))
             .map(e => e.text)
-            .filter(text => text.length > 20); // Filtra linhas muito curtas
+            .filter(text => text && text.length > 5);
             
           results.push({
             text: entry.text,
@@ -198,18 +222,22 @@ export default function Home() {
       })
 
       // Buscar no direito canônico
+      let direitoMatches = 0
       documentsData.direito_canonico.forEach((entry: SearchEntry, index: number) => {
-        if (searchRegex.test(entry.text)) {
-          // Pega mais contexto (2-3 linhas antes e depois)
+        const textNoAccents = removeAccents(entry.text.toLowerCase())
+        if (textNoAccents.includes(searchTermNoAccents)) {
+          direitoMatches++
+          
+          // Contexto seguro
           const beforeLines = documentsData.direito_canonico
-            .slice(Math.max(0, index - 3), index)
+            .slice(Math.max(0, index - 2), index)
             .map(e => e.text)
-            .filter(text => text.length > 20); // Filtra linhas muito curtas
+            .filter(text => text && text.length > 5);
           
           const afterLines = documentsData.direito_canonico
-            .slice(index + 1, Math.min(documentsData.direito_canonico.length, index + 4))
+            .slice(index + 1, Math.min(documentsData.direito_canonico.length, index + 3))
             .map(e => e.text)
-            .filter(text => text.length > 20); // Filtra linhas muito curtas
+            .filter(text => text && text.length > 5);
             
           results.push({
             text: entry.text,
@@ -223,6 +251,8 @@ export default function Home() {
           })
         }
       })
+
+      console.log(`📊 Matches encontrados: Catecismo: ${catecismoMatches}, Direito Canônico: ${direitoMatches}, Total: ${results.length}`)
 
       const response: SearchResponse = {
         searchTerm: searchTerm.trim(),
@@ -249,22 +279,68 @@ export default function Home() {
   const isDarkMode = theme === 'dark'
 
   const highlightText = (text: string, searchTerm: string) => {
-    if (!searchTerm) return text
+    if (!searchTerm.trim()) return text
     
-    const regex = new RegExp(`(${searchTerm.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')})`, 'gi')
-    const parts = text.split(regex)
+    // Função para encontrar posições das palavras ignorando acentos
+    const findMatches = (text: string, searchTerm: string) => {
+      const matches = []
+      const textNoAccents = removeAccents(text.toLowerCase())
+      const searchNoAccents = removeAccents(searchTerm.toLowerCase())
+      
+      let startIndex = 0
+      while (true) {
+        const index = textNoAccents.indexOf(searchNoAccents, startIndex)
+        if (index === -1) break
+        
+        // Encontra o comprimento real da palavra no texto original
+        const originalWord = text.substring(index, index + searchNoAccents.length)
+        
+        matches.push({
+          start: index,
+          end: index + searchNoAccents.length,
+          original: originalWord
+        })
+        startIndex = index + 1
+      }
+      return matches
+    }
     
-    return parts.map((part, index) => 
-      regex.test(part) ? (
-        <mark key={index} className={`px-2 py-1 rounded font-semibold shadow-sm ${
-          isDarkMode 
-            ? 'bg-yellow-400 text-gray-900 border border-yellow-500/30' 
-            : 'bg-yellow-200 text-gray-900'
-        }`}>
-          {part}
+    const matches = findMatches(text, searchTerm.trim())
+    if (matches.length === 0) return text
+    
+    // Constrói o texto com destaques
+    let result = []
+    let lastIndex = 0
+    
+    matches.forEach((match, index) => {
+      // Adiciona texto antes do match
+      if (match.start > lastIndex) {
+        result.push(text.substring(lastIndex, match.start))
+      }
+      
+      // Adiciona texto destacado
+      result.push(
+        <mark 
+          key={index} 
+          className={`${
+            isDarkMode 
+              ? 'bg-yellow-400/30 text-yellow-200' 
+              : 'bg-yellow-200 text-yellow-900'
+          } px-1 rounded`}
+        >
+          {match.original}
         </mark>
-      ) : part
-    )
+      )
+      
+      lastIndex = match.end
+    })
+    
+    // Adiciona texto restante
+    if (lastIndex < text.length) {
+      result.push(text.substring(lastIndex))
+    }
+    
+    return result
   }
 
   // Calcula estatísticas por documento
@@ -309,14 +385,18 @@ export default function Home() {
         
         const content = entries.map(entry => entry.text)
         
-        // Conta ocorrências da palavra pesquisada se houver termo de busca
+        // Conta ocorrências da palavra pesquisada se houver termo de busca (sem acentos)
         let matchCount = 0
         if (searchTerm && searchTerm.trim()) {
-          const searchRegex = new RegExp(searchTerm.trim(), 'gi')
+          const searchTermNoAccents = removeAccents(searchTerm.trim().toLowerCase())
           content.forEach(text => {
-            const matches = text.match(searchRegex)
-            if (matches) {
-              matchCount += matches.length
+            const textNoAccents = removeAccents(text.toLowerCase())
+            let startIndex = 0
+            while (true) {
+              const index = textNoAccents.indexOf(searchTermNoAccents, startIndex)
+              if (index === -1) break
+              matchCount++
+              startIndex = index + 1
             }
           })
         }
@@ -568,7 +648,7 @@ export default function Home() {
           {/* Results */}
           {results.length > 0 && (
             <div className="space-y-3 sm:space-y-4">
-              {results.slice(0, 50).map((result, index) => (
+              {results.map((result, index) => (
                 <Card key={index} className={`overflow-hidden transition-colors duration-300 ${
                   isDarkMode ? 'bg-slate-800/90 border-slate-600 shadow-lg backdrop-blur-sm' : 'bg-white border-gray-200'
                 }`}>
@@ -681,21 +761,7 @@ export default function Home() {
                 </Card>
               ))}
               
-              {results.length > 50 && (
-                <Card className={`transition-colors duration-300 ${
-                  isDarkMode ? 'bg-slate-800/90 border-slate-600 shadow-lg backdrop-blur-sm' : 'bg-white border-gray-200'
-                }`}>
-                  <CardContent className="p-4 text-center">
-                    <p className={`text-sm ${
-                      isDarkMode ? 'text-gray-300' : 'text-gray-600'
-                    }`}>
-                      Mostrando primeiros 50 resultados de {results.length} encontrados.
-                      <br />
-                      <span className="text-xs">Refine sua busca para resultados mais específicos.</span>
-                    </p>
-                  </CardContent>
-                </Card>
-              )}
+              {/* Todos os resultados são mostrados sem limitação */}
             </div>
           )}
 
