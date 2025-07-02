@@ -5,7 +5,6 @@ import { Card, CardContent, CardHeader } from '@/components/ui/card'
 import { Input } from '@/components/ui/input'
 import { Button } from '@/components/ui/button'
 import { Search, Loader2, Moon, Sun, Book, Scale, ExternalLink, Download } from 'lucide-react'
-import Link from 'next/link'
 
 interface SearchResult {
   text: string;
@@ -29,6 +28,11 @@ interface SearchResponse {
   };
 }
 
+interface DocumentData {
+  catecismo: string[];
+  direito_canonico: string[];
+}
+
 export default function Home() {
   const [searchTerm, setSearchTerm] = useState('')
   const [results, setResults] = useState<SearchResult[]>([])
@@ -36,24 +40,58 @@ export default function Home() {
   const [isLoading, setIsLoading] = useState(false)
   const [error, setError] = useState('')
   const [theme, setTheme] = useState<'light' | 'dark'>('light')
-  const [documentsData, setDocumentsData] = useState<any>(null)
+  const [documentsData, setDocumentsData] = useState<DocumentData | null>(null)
+  const [isLoadingData, setIsLoadingData] = useState(true)
 
   // Carregar dados dos documentos
   useEffect(() => {
-    // Simula dados locais - em produção você carregaria de arquivos estáticos
-    const mockData = {
-      catecismo: [
-        "1. O desejo de Deus está inscrito no coração do homem, porque o homem foi criado por Deus e para Deus; e Deus não cessa de atrair o homem a si, e somente em Deus o homem encontrará a verdade e a felicidade que não cessa de procurar.",
-        "2. «Fala, porque o teu servo escuta» (1Sm 3,10). A Igreja, seguindo o exemplo dos apóstolos, nunca cessou de proclamar a todos que Jesus Cristo, Filho de Deus feito homem, é «o Caminho, a Verdade e a Vida» (Jo 14,6).",
-        "3. Aqueles que com a ajuda de Deus acolheram o apelo de Cristo e a ele livremente responderam foram, por sua vez, levados pelo amor de Cristo a anunciar por toda a parte a Boa Nova. Este tesouro recebido dos apóstolos foi fielmente guardado pelos seus sucessores."
-      ],
-      direito_canonico: [
-        "Cân. 1 - As normas do presente Código referem-se apenas à Igreja latina.",
-        "Cân. 2 - Na maior parte, o Código não define os ritos que devem ser observados na celebração das ações litúrgicas; por isso as leis litúrgicas até agora vigentes conservam a sua força, a não ser que alguma delas seja contrária aos cânones do Código.",
-        "Cân. 3 - Os cânones do Código não ab-rogam nem derrogam as convenções que a Sé Apostólica celebrou com as nações ou outras sociedades políticas."
-      ]
+    const loadDocuments = async () => {
+      try {
+        setIsLoadingData(true)
+        
+        // Carrega dados do catecismo
+        const catecismoResponse = await fetch('/data/catecismo.json')
+        const catecismoData = await catecismoResponse.json()
+        
+        // Carrega dados do direito canônico  
+        const direitoResponse = await fetch('/data/direito_canonico.json')
+        const direitoData = await direitoResponse.json()
+        
+        // Extrai o texto dos objetos JSON
+        const catecismoTexts = catecismoData.content.map((item: any) => item.text)
+        const direitoTexts = direitoData.content.map((item: any) => item.text)
+        
+        setDocumentsData({
+          catecismo: catecismoTexts,
+          direito_canonico: direitoTexts
+        })
+        
+        console.log('Documentos carregados:', {
+          catecismo: catecismoTexts.length + ' entradas',
+          direito_canonico: direitoTexts.length + ' entradas'
+        })
+      } catch (error) {
+        console.error('Erro ao carregar documentos:', error)
+        // Fallback para dados básicos se JSON não funcionar
+        const fallbackData = {
+          catecismo: [
+            "1. O desejo de Deus está inscrito no coração do homem, porque o homem foi criado por Deus e para Deus; e Deus não cessa de atrair o homem a si, e somente em Deus o homem encontrará a verdade e a felicidade que não cessa de procurar.",
+            "2. «Fala, porque o teu servo escuta» (1Sm 3,10). A Igreja, seguindo o exemplo dos apóstolos, nunca cessou de proclamar a todos que Jesus Cristo, Filho de Deus feito homem, é «o Caminho, a Verdade e a Vida» (Jo 14,6).",
+            "3. Aqueles que com a ajuda de Deus acolheram o apelo de Cristo e a ele livremente responderam foram, por sua vez, levados pelo amor de Cristo a anunciar por toda a parte a Boa Nova."
+          ],
+          direito_canonico: [
+            "Cân. 1 - As normas do presente Código referem-se apenas à Igreja latina.",
+            "Cân. 2 - Na maior parte, o Código não define os ritos que devem ser observados na celebração das ações litúrgicas; por isso as leis litúrgicas até agora vigentes conservam a sua força.",
+            "Cân. 3 - Os cânones do Código não ab-rogam nem derrogam as convenções que a Sé Apostólica celebrou com as nações."
+          ]
+        }
+        setDocumentsData(fallbackData)
+      } finally {
+        setIsLoadingData(false)
+      }
     }
-    setDocumentsData(mockData)
+
+    loadDocuments()
   }, [])
 
   const handleSubmit = async (e: FormEvent) => {
@@ -64,66 +102,70 @@ export default function Home() {
       return
     }
 
+    if (!documentsData) {
+      setError('Documentos ainda não foram carregados. Tente novamente.')
+      return
+    }
+
     setError('')
     setIsLoading(true)
     setResults([])
     setSearchResponse(null)
 
     try {
-      // Busca client-side nos dados locais
-      if (documentsData) {
-        const results: SearchResult[] = []
-        const searchRegex = new RegExp(searchTerm.trim(), 'gi')
+      const results: SearchResult[] = []
+      const searchRegex = new RegExp(searchTerm.trim(), 'gi')
 
-        // Buscar no catecismo
-        documentsData.catecismo.forEach((text: string, index: number) => {
-          if (searchRegex.test(text)) {
-            const paragraphMatch = text.match(/^(\d+)\./)
-            results.push({
-              text,
-              document: 'catecismo',
-              lineNumber: index + 1,
-              paragraph: paragraphMatch ? paragraphMatch[1] : undefined,
-              context: {
-                before: documentsData.catecismo.slice(Math.max(0, index - 1), index),
-                after: documentsData.catecismo.slice(index + 1, index + 2)
-              }
-            })
-          }
-        })
-
-        // Buscar no direito canônico
-        documentsData.direito_canonico.forEach((text: string, index: number) => {
-          if (searchRegex.test(text)) {
-            const canonMatch = text.match(/Cân\.\s*(\d+)/)
-            results.push({
-              text,
-              document: 'direito_canonico',
-              lineNumber: index + 1,
-              canon: canonMatch ? canonMatch[1] : undefined,
-              context: {
-                before: documentsData.direito_canonico.slice(Math.max(0, index - 1), index),
-                after: documentsData.direito_canonico.slice(index + 1, index + 2)
-              }
-            })
-          }
-        })
-
-        const response: SearchResponse = {
-          searchTerm: searchTerm.trim(),
-          results,
-          totalMatches: results.length,
-          availableDocuments: {
-            catecismo: results.some(r => r.document === 'catecismo'),
-            direito_canonico: results.some(r => r.document === 'direito_canonico')
-          }
+      // Buscar no catecismo
+      documentsData.catecismo.forEach((text: string, index: number) => {
+        if (searchRegex.test(text)) {
+          const paragraphMatch = text.match(/^(\d+)\./)
+          results.push({
+            text,
+            document: 'catecismo',
+            lineNumber: index + 1,
+            paragraph: paragraphMatch ? paragraphMatch[1] : undefined,
+            context: {
+              before: documentsData.catecismo.slice(Math.max(0, index - 1), index),
+              after: documentsData.catecismo.slice(index + 1, index + 2)
+            }
+          })
         }
+      })
 
-        setResults(results)
-        setSearchResponse(response)
+      // Buscar no direito canônico
+      documentsData.direito_canonico.forEach((text: string, index: number) => {
+        if (searchRegex.test(text)) {
+          const canonMatch = text.match(/Cân\.\s*(\d+)/)
+          results.push({
+            text,
+            document: 'direito_canonico',
+            lineNumber: index + 1,
+            canon: canonMatch ? canonMatch[1] : undefined,
+            context: {
+              before: documentsData.direito_canonico.slice(Math.max(0, index - 1), index),
+              after: documentsData.direito_canonico.slice(index + 1, index + 2)
+            }
+          })
+        }
+      })
+
+      const response: SearchResponse = {
+        searchTerm: searchTerm.trim(),
+        results,
+        totalMatches: results.length,
+        availableDocuments: {
+          catecismo: results.some(r => r.document === 'catecismo'),
+          direito_canonico: results.some(r => r.document === 'direito_canonico')
+        }
       }
+
+      setResults(results)
+      setSearchResponse(response)
+      
+      console.log(`Busca realizada: "${searchTerm}" - ${results.length} resultados`)
     } catch (error) {
-      console.error('Erro:', error)
+      console.error('Erro na busca:', error)
       setError('Erro ao realizar a busca. Tente novamente.')
     } finally {
       setIsLoading(false)
@@ -165,6 +207,17 @@ export default function Home() {
 
   const toggleTheme = () => {
     setTheme(prevTheme => prevTheme === 'dark' ? 'light' : 'dark')
+  }
+
+  if (isLoadingData) {
+    return (
+      <div className="min-h-screen bg-gradient-to-br from-blue-50 to-indigo-100 flex items-center justify-center">
+        <div className="text-center">
+          <Loader2 className="h-8 w-8 animate-spin mx-auto mb-4 text-blue-600" />
+          <p className="text-gray-600">Carregando documentos da Igreja...</p>
+        </div>
+      </div>
+    )
   }
 
   return (
@@ -213,6 +266,15 @@ export default function Home() {
             }`}>
               Busque no Catecismo da Igreja Católica e no Código de Direito Canônico
             </p>
+            
+            {/* Status dos documentos carregados */}
+            {documentsData && (
+              <div className={`text-xs sm:text-sm mb-4 ${
+                isDarkMode ? 'text-gray-400' : 'text-gray-500'
+              }`}>
+                📚 {documentsData.catecismo.length} parágrafos do Catecismo • {documentsData.direito_canonico.length} cânones carregados
+              </div>
+            )}
             
             {/* Links para documentos originais */}
             <div className="space-y-3 sm:space-y-4 mb-4 sm:mb-6">
@@ -435,7 +497,7 @@ export default function Home() {
             </div>
           )}
 
-          {results.length === 0 && !isLoading && searchTerm && (
+          {results.length === 0 && !isLoading && searchTerm && searchResponse && (
             <Card className={`transition-colors duration-300 ${
               isDarkMode ? 'bg-slate-800/90 border-slate-600 shadow-lg backdrop-blur-sm' : 'bg-white border-gray-200'
             }`}>
@@ -444,6 +506,11 @@ export default function Home() {
                   isDarkMode ? 'text-gray-200' : 'text-gray-600'
                 }`}>
                   Nenhum resultado encontrado para &ldquo;{searchTerm}&rdquo;
+                </p>
+                <p className={`text-sm mt-2 ${
+                  isDarkMode ? 'text-gray-400' : 'text-gray-500'
+                }`}>
+                  Tente usar palavras diferentes ou verifique a ortografia
                 </p>
               </CardContent>
             </Card>
