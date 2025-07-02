@@ -161,18 +161,25 @@ export default function Home() {
       // Buscar no catecismo
       documentsData.catecismo.forEach((entry: SearchEntry, index: number) => {
         if (searchRegex.test(entry.text)) {
+          // Pega mais contexto (2-3 linhas antes e depois)
+          const beforeLines = documentsData.catecismo
+            .slice(Math.max(0, index - 3), index)
+            .map(e => e.text)
+            .filter(text => text.length > 20); // Filtra linhas muito curtas
+          
+          const afterLines = documentsData.catecismo
+            .slice(index + 1, Math.min(documentsData.catecismo.length, index + 4))
+            .map(e => e.text)
+            .filter(text => text.length > 20); // Filtra linhas muito curtas
+            
           results.push({
             text: entry.text,
             document: 'catecismo',
             lineNumber: entry.lineNumber,
             paragraph: entry.paragraph,
             context: {
-              before: documentsData.catecismo
-                .slice(Math.max(0, index - 1), index)
-                .map(e => e.text),
-              after: documentsData.catecismo
-                .slice(index + 1, index + 2)
-                .map(e => e.text)
+              before: beforeLines,
+              after: afterLines
             }
           })
         }
@@ -181,18 +188,25 @@ export default function Home() {
       // Buscar no direito canônico
       documentsData.direito_canonico.forEach((entry: SearchEntry, index: number) => {
         if (searchRegex.test(entry.text)) {
+          // Pega mais contexto (2-3 linhas antes e depois)
+          const beforeLines = documentsData.direito_canonico
+            .slice(Math.max(0, index - 3), index)
+            .map(e => e.text)
+            .filter(text => text.length > 20); // Filtra linhas muito curtas
+          
+          const afterLines = documentsData.direito_canonico
+            .slice(index + 1, Math.min(documentsData.direito_canonico.length, index + 4))
+            .map(e => e.text)
+            .filter(text => text.length > 20); // Filtra linhas muito curtas
+            
           results.push({
             text: entry.text,
             document: 'direito_canonico',
             lineNumber: entry.lineNumber,
             canon: entry.canon,
             context: {
-              before: documentsData.direito_canonico
-                .slice(Math.max(0, index - 1), index)
-                .map(e => e.text),
-              after: documentsData.direito_canonico
-                .slice(index + 1, index + 2)
-                .map(e => e.text)
+              before: beforeLines,
+              after: afterLines
             }
           })
         }
@@ -551,11 +565,55 @@ export default function Home() {
                   
                   <CardContent className="pt-0">
                     <div className="space-y-3">
-                      <p className={`leading-relaxed text-sm sm:text-base ${
-                        isDarkMode ? 'text-gray-100' : 'text-gray-800'
+                      {/* Contexto anterior */}
+                      {result.context.before && result.context.before.length > 0 && (
+                        <div className={`p-3 rounded-lg border-l-4 ${
+                          isDarkMode 
+                            ? 'bg-slate-700/50 border-l-gray-500 text-gray-300' 
+                            : 'bg-gray-50 border-l-gray-300 text-gray-600'
+                        }`}>
+                          <div className="text-xs font-medium mb-1 opacity-75">Contexto anterior:</div>
+                          <div className="text-sm">
+                            {result.context.before.map((line, idx) => (
+                              <p key={idx} className="mb-1">{line}</p>
+                            ))}
+                          </div>
+                        </div>
+                      )}
+                      
+                      {/* Texto principal com destaque */}
+                      <p className={`leading-relaxed text-sm sm:text-base p-3 rounded-lg border-l-4 ${
+                        result.document === 'catecismo'
+                          ? (isDarkMode 
+                              ? 'bg-blue-900/30 border-l-blue-400 text-blue-100' 
+                              : 'bg-blue-50 border-l-blue-500 text-blue-900'
+                            )
+                          : (isDarkMode 
+                              ? 'bg-purple-900/30 border-l-purple-400 text-purple-100' 
+                              : 'bg-purple-50 border-l-purple-500 text-purple-900'
+                            )
                       }`}>
+                        <span className="font-medium text-xs opacity-75 block mb-2">
+                          {result.document === 'catecismo' ? 'Catecismo' : 'Direito Canônico'}:
+                        </span>
                         {highlightText(result.text, searchTerm)}
                       </p>
+                      
+                      {/* Contexto posterior */}
+                      {result.context.after && result.context.after.length > 0 && (
+                        <div className={`p-3 rounded-lg border-l-4 ${
+                          isDarkMode 
+                            ? 'bg-slate-700/50 border-l-gray-500 text-gray-300' 
+                            : 'bg-gray-50 border-l-gray-300 text-gray-600'
+                        }`}>
+                          <div className="text-xs font-medium mb-1 opacity-75">Contexto posterior:</div>
+                          <div className="text-sm">
+                            {result.context.after.map((line, idx) => (
+                              <p key={idx} className="mb-1">{line}</p>
+                            ))}
+                          </div>
+                        </div>
+                      )}
                     </div>
                   </CardContent>
                 </Card>
