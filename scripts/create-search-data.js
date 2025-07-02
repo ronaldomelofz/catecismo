@@ -31,7 +31,7 @@ function createSearchData() {
       }
       
       // Adiciona entrada se o texto for significativo
-      if (trimmed.length > 10 && !isHeaderOrFooter(trimmed)) {
+      if (trimmed.length > 10 && !isHeaderOrFooter(trimmed) && !isIndexContent(trimmed)) {
         entries.push({
           text: trimmed,
           lineNumber: index + 1,
@@ -63,9 +63,53 @@ function createSearchData() {
       /^TÍTULO/i,
       /^\d+$/, // Apenas números (páginas)
       /^[IVX]+$/, // Números romanos
+      
+      // Filtros para ÍNDICE GERAL e seções similares
+      /ÍNDICE\s*GERAL/i,
+      /^ÍNDICE/i,
+      /SUMÁRIO/i,
+      /TABELA\s*DE\s*CONTEÚDO/i,
+      /CONTEÚDO/i,
+      /^\.{3,}/, // Linhas com pontos (típicas de índices)
+      /^\d+\s*\.{3,}/, // Números seguidos de pontos
+      /\.{3,}\s*\d+$/, // Pontos seguidos de números (páginas)
+      /^\d+\s*-\s*\d+$/, // Intervalos de páginas (ex: 123-145)
     ];
     
-    return headerPatterns.some(pattern => pattern.test(text)) && text.length < 50;
+    return headerPatterns.some(pattern => pattern.test(text)) && text.length < 150;
+  }
+  
+  // Função para detectar conteúdo específico de índices
+  function isIndexContent(text) {
+    const indexPatterns = [
+      // Padrões típicos de índices
+      /^\d+\.\s*[A-ZÀÁÂÃÉÊÍÓÔÕÚÜ]/i, // "1. ALGUM TÍTULO"
+      /^[A-Z\s]+\.\.\.\s*\d+$/i, // "ALGUM TÍTULO... 123"
+      /^[A-Z\s]+\s*\.\.\.\s*\d+$/i, // "ALGUM TÍTULO ... 123"
+      /^\d+\s*\.\s*[A-Z\s]+\s*\.\.\./i, // "1. TÍTULO..."
+      /^[A-Z][a-z\s]+\.\.\.\s*\d+$/i, // "Título... 123"
+      /^[IVX]+\.\s*[A-ZÀÁÂÃÉÊÍÓÔÕÚÜ]/i, // "I. TÍTULO"
+      /^Parágrafo\s*\d+\s*\.\.\./i, // "Parágrafo 123..."
+      /^Cân\.\s*\d+\s*\.\.\./i, // "Cân. 123..."
+      /^\d+\s*-\s*\d+\s*$/i, // "123 - 456" (números de páginas)
+      /^Página\s*\d+/i, // "Página 123"
+      /^Pág\.\s*\d+/i, // "Pág. 123"
+      /^Ver\s*também/i, // "Ver também"
+      /^Cf\.\s*/i, // "Cf. "
+      /^Cfr\.\s*/i, // "Cfr. "
+    ];
+    
+    // Verifica se contém muitos pontos (típico de índices)
+    const dotCount = (text.match(/\./g) || []).length;
+    const hasLotsOfDots = dotCount > 3 && text.length < 80;
+    
+    // Verifica se é linha de índice típica
+    const matchesIndexPattern = indexPatterns.some(pattern => pattern.test(text));
+    
+    // Verifica se tem padrão de referência de página
+    const hasPageReference = /\b\d{1,4}$/.test(text.trim()); // Termina com número (página)
+    
+    return matchesIndexPattern || hasLotsOfDots || (hasPageReference && text.length < 60);
   }
   
   try {
