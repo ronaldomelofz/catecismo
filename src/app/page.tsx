@@ -408,32 +408,6 @@ export default function Home() {
               Busque no Catecismo da Igreja Católica e no Código de Direito Canônico
             </p>
             
-            {/* Status dos documentos carregados */}
-            {metadata && documentsData && (
-              <div className={`text-xs sm:text-sm mb-4 p-3 rounded-lg ${
-                isDarkMode 
-                  ? 'bg-slate-800/50 text-gray-300 border border-slate-700' 
-                  : 'bg-white/70 text-gray-600 border border-gray-200'
-              }`}>
-                <div className="flex items-center justify-center gap-2 mb-1">
-                  <Book className="h-4 w-4" />
-                  <span className="font-medium">Base de Dados Carregada</span>
-                </div>
-                <div className="text-xs">
-                  📚 {metadata.catecismo.total.toLocaleString()} parágrafos do Catecismo • 
-                  ⚖️ {metadata.direito_canonico.total.toLocaleString()} entradas do Direito Canônico
-                </div>
-                {error && (
-                  <div className={`mt-2 text-xs flex items-center gap-1 ${
-                    isDarkMode ? 'text-yellow-300' : 'text-orange-600'
-                  }`}>
-                    <AlertCircle className="h-3 w-3" />
-                    <span>Usando dados básicos</span>
-                  </div>
-                )}
-              </div>
-            )}
-            
             {/* Links para documentos originais */}
             <div className="space-y-3 sm:space-y-4 mb-4 sm:mb-6">
               {/* Links oficiais do Vaticano */}
