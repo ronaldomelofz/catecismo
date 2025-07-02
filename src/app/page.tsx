@@ -4,7 +4,7 @@ import { useState, useEffect, FormEvent } from 'react'
 import { Card, CardContent, CardHeader } from '@/components/ui/card'
 import { Input } from '@/components/ui/input'
 import { Button } from '@/components/ui/button'
-import { Search, Loader2, Moon, Sun, Book, Scale, ExternalLink, AlertCircle } from 'lucide-react'
+import { Search, Loader2, Moon, Sun, Book, Scale, ExternalLink, AlertCircle, X, Eye } from 'lucide-react'
 
 interface SearchEntry {
   text: string;
@@ -61,6 +61,16 @@ export default function Home() {
   const [documentsData, setDocumentsData] = useState<DocumentData | null>(null)
   const [metadata, setMetadata] = useState<DocumentMetadata | null>(null)
   const [isLoadingData, setIsLoadingData] = useState(true)
+
+  // Estado para modal de íntegra
+  const [showIntegralModal, setShowIntegralModal] = useState(false)
+  const [integralContent, setIntegralContent] = useState<{
+    title: string;
+    content: string[];
+    type: 'paragraph' | 'canon';
+    number: string;
+  } | null>(null)
+  const [isLoadingIntegral, setIsLoadingIntegral] = useState(false)
 
   // Carregar dados dos documentos
   useEffect(() => {
@@ -269,6 +279,57 @@ export default function Home() {
 
   const toggleTheme = () => {
     setTheme(prevTheme => prevTheme === 'dark' ? 'light' : 'dark')
+  }
+
+  // Função para buscar íntegra do parágrafo ou cânon
+  const showIntegral = async (type: 'paragraph' | 'canon', number: string) => {
+    if (!documentsData) return
+    
+    setIsLoadingIntegral(true)
+    setShowIntegralModal(true)
+    
+    try {
+      const data = type === 'paragraph' ? documentsData.catecismo : documentsData.direito_canonico
+      
+      // Busca todas as entradas do parágrafo/cânon específico
+      const entries = data.filter(entry => {
+        if (type === 'paragraph') {
+          return entry.paragraph === number
+        } else {
+          return entry.canon === number
+        }
+      })
+      
+      if (entries.length > 0) {
+        const title = type === 'paragraph' 
+          ? `Parágrafo ${number} - Catecismo da Igreja Católica`
+          : `Cânon ${number} - Código de Direito Canônico`
+        
+        setIntegralContent({
+          title,
+          content: entries.map(entry => entry.text),
+          type,
+          number
+        })
+      } else {
+        setIntegralContent({
+          title: type === 'paragraph' ? `Parágrafo ${number}` : `Cânon ${number}`,
+          content: ['Conteúdo não encontrado.'],
+          type,
+          number
+        })
+      }
+    } catch (error) {
+      console.error('Erro ao buscar íntegra:', error)
+      setIntegralContent({
+        title: 'Erro',
+        content: ['Erro ao carregar o conteúdo.'],
+        type,
+        number
+      })
+    } finally {
+      setIsLoadingIntegral(false)
+    }
   }
 
   if (isLoadingData) {
@@ -542,22 +603,32 @@ export default function Home() {
                       {/* Badge do parágrafo/cânon */}
                       <div className="flex flex-wrap gap-2">
                         {result.document === 'catecismo' && result.paragraph && (
-                          <span className={`px-2 sm:px-3 py-1 rounded-full text-xs sm:text-sm font-bold transition-colors ${
-                            isDarkMode 
-                              ? 'bg-blue-900/60 text-blue-200 border border-blue-700/50' 
-                              : 'bg-blue-100 text-blue-800'
-                          }`}>
+                          <button
+                            onClick={() => showIntegral('paragraph', result.paragraph!)}
+                            className={`group inline-flex items-center gap-1 px-2 sm:px-3 py-1 rounded-full text-xs sm:text-sm font-bold transition-all duration-200 hover:scale-105 ${
+                              isDarkMode 
+                                ? 'bg-blue-900/60 text-blue-200 border border-blue-700/50 hover:bg-blue-800/80 hover:border-blue-600' 
+                                : 'bg-blue-100 text-blue-800 hover:bg-blue-200 border border-blue-300'
+                            }`}
+                            title="Clique para ver a íntegra do parágrafo"
+                          >
                             Parágrafo {result.paragraph}
-                          </span>
+                            <Eye className="h-3 w-3 opacity-60 group-hover:opacity-100 transition-opacity" />
+                          </button>
                         )}
                         {result.document === 'direito_canonico' && result.canon && (
-                          <span className={`px-2 sm:px-3 py-1 rounded-full text-xs sm:text-sm font-bold transition-colors ${
-                            isDarkMode 
-                              ? 'bg-purple-900/60 text-purple-200 border border-purple-700/50' 
-                              : 'bg-purple-100 text-purple-800'
-                          }`}>
+                          <button
+                            onClick={() => showIntegral('canon', result.canon!)}
+                            className={`group inline-flex items-center gap-1 px-2 sm:px-3 py-1 rounded-full text-xs sm:text-sm font-bold transition-all duration-200 hover:scale-105 ${
+                              isDarkMode 
+                                ? 'bg-purple-900/60 text-purple-200 border border-purple-700/50 hover:bg-purple-800/80 hover:border-purple-600' 
+                                : 'bg-purple-100 text-purple-800 hover:bg-purple-200 border border-purple-300'
+                            }`}
+                            title="Clique para ver a íntegra do cânon"
+                          >
                             Cân. {result.canon}
-                          </span>
+                            <Eye className="h-3 w-3 opacity-60 group-hover:opacity-100 transition-opacity" />
+                          </button>
                         )}
                       </div>
                     </div>
@@ -662,6 +733,106 @@ export default function Home() {
           )}
         </div>
       </div>
+
+      {/* Modal de Íntegra */}
+      {showIntegralModal && (
+        <div 
+          className="fixed inset-0 bg-black/50 backdrop-blur-sm z-50 flex items-center justify-center p-4"
+          onClick={(e) => {
+            if (e.target === e.currentTarget) {
+              setShowIntegralModal(false)
+            }
+          }}
+        >
+          <div className={`w-full max-w-4xl max-h-[90vh] rounded-lg shadow-2xl transition-colors duration-300 ${
+            isDarkMode ? 'bg-slate-800 border-slate-600' : 'bg-white border-gray-200'
+          } border overflow-hidden`}>
+            {/* Header do Modal */}
+            <div className={`flex items-center justify-between p-4 sm:p-6 border-b transition-colors duration-300 ${
+              isDarkMode ? 'border-slate-600 bg-slate-700/50' : 'border-gray-200 bg-gray-50'
+            }`}>
+              <div className="flex items-center gap-3">
+                {integralContent?.type === 'paragraph' ? (
+                  <Book className={`h-5 w-5 ${isDarkMode ? 'text-blue-400' : 'text-blue-600'}`} />
+                ) : (
+                  <Scale className={`h-5 w-5 ${isDarkMode ? 'text-purple-400' : 'text-purple-600'}`} />
+                )}
+                <h3 className={`text-lg sm:text-xl font-semibold ${
+                  isDarkMode ? 'text-gray-100' : 'text-gray-900'
+                }`}>
+                  {isLoadingIntegral ? 'Carregando...' : integralContent?.title}
+                </h3>
+              </div>
+              <button
+                onClick={() => setShowIntegralModal(false)}
+                className={`p-2 rounded-lg transition-colors duration-200 ${
+                  isDarkMode 
+                    ? 'hover:bg-slate-600 text-gray-300 hover:text-gray-100' 
+                    : 'hover:bg-gray-100 text-gray-500 hover:text-gray-700'
+                }`}
+                title="Fechar"
+              >
+                <X className="h-5 w-5" />
+              </button>
+            </div>
+
+            {/* Conteúdo do Modal */}
+            <div className="overflow-y-auto max-h-[calc(90vh-120px)] p-4 sm:p-6">
+              {isLoadingIntegral ? (
+                <div className="flex items-center justify-center py-12">
+                  <Loader2 className={`h-8 w-8 animate-spin ${
+                    isDarkMode ? 'text-blue-400' : 'text-blue-600'
+                  }`} />
+                </div>
+              ) : (
+                <div className="space-y-4">
+                  {integralContent?.content.map((paragraph, index) => (
+                    <p key={index} className={`leading-relaxed text-sm sm:text-base ${
+                      isDarkMode ? 'text-gray-200' : 'text-gray-800'
+                    }`}>
+                      {paragraph}
+                    </p>
+                  ))}
+                  
+                  {integralContent && integralContent.content.length === 0 && (
+                    <p className={`text-center py-8 ${
+                      isDarkMode ? 'text-gray-400' : 'text-gray-500'
+                    }`}>
+                      Nenhum conteúdo encontrado.
+                    </p>
+                  )}
+                </div>
+              )}
+            </div>
+
+            {/* Footer do Modal */}
+            <div className={`flex items-center justify-between p-4 sm:p-6 border-t transition-colors duration-300 ${
+              isDarkMode ? 'border-slate-600 bg-slate-700/50' : 'border-gray-200 bg-gray-50'
+            }`}>
+              <div className={`text-xs sm:text-sm ${
+                isDarkMode ? 'text-gray-400' : 'text-gray-500'
+              }`}>
+                {integralContent?.type === 'paragraph' 
+                  ? 'Catecismo da Igreja Católica' 
+                  : 'Código de Direito Canônico'
+                }
+              </div>
+              <div className="flex gap-2">
+                <button
+                  onClick={() => setShowIntegralModal(false)}
+                  className={`px-4 py-2 text-sm font-medium rounded-lg transition-colors duration-200 ${
+                    isDarkMode 
+                      ? 'bg-slate-600 text-gray-200 hover:bg-slate-500' 
+                      : 'bg-gray-200 text-gray-800 hover:bg-gray-300'
+                  }`}
+                >
+                  Fechar
+                </button>
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   )
 } 
