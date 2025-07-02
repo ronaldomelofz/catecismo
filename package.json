@@ -4,14 +4,15 @@
   "private": true,
   "scripts": {
     "dev": "next dev",
-    "build": "next build",
+    "build": "npm run create-search-data && next build",
     "start": "next start",
     "lint": "next lint",
     "convert-pdfs": "node scripts/convert-pdfs.js",
     "export": "next build",
     "deploy": "npm run build",
     "build:netlify": "npm run build && npm run prepare:deploy",
-    "prepare:deploy": "node scripts/prepare-netlify.js"
+    "prepare:deploy": "node scripts/prepare-netlify.js",
+    "create-search-data": "node scripts/create-search-data.js"
   },
   "dependencies": {
     "@radix-ui/react-dialog": "^1.0.5",

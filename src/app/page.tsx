@@ -4,7 +4,14 @@ import { useState, useEffect, FormEvent } from 'react'
 import { Card, CardContent, CardHeader } from '@/components/ui/card'
 import { Input } from '@/components/ui/input'
 import { Button } from '@/components/ui/button'
-import { Search, Loader2, Moon, Sun, Book, Scale, ExternalLink, Download } from 'lucide-react'
+import { Search, Loader2, Moon, Sun, Book, Scale, ExternalLink, AlertCircle } from 'lucide-react'
+
+interface SearchEntry {
+  text: string;
+  lineNumber: number;
+  paragraph?: string;
+  canon?: string;
+}
 
 interface SearchResult {
   text: string;
@@ -29,8 +36,19 @@ interface SearchResponse {
 }
 
 interface DocumentData {
-  catecismo: string[];
-  direito_canonico: string[];
+  catecismo: SearchEntry[];
+  direito_canonico: SearchEntry[];
+}
+
+interface DocumentMetadata {
+  catecismo: {
+    total: number;
+    lastParagraph: number;
+  };
+  direito_canonico: {
+    total: number;
+    lastCanon: number;
+  };
 }
 
 export default function Home() {
@@ -41,6 +59,7 @@ export default function Home() {
   const [error, setError] = useState('')
   const [theme, setTheme] = useState<'light' | 'dark'>('light')
   const [documentsData, setDocumentsData] = useState<DocumentData | null>(null)
+  const [metadata, setMetadata] = useState<DocumentMetadata | null>(null)
   const [isLoadingData, setIsLoadingData] = useState(true)
 
   // Carregar dados dos documentos
@@ -48,44 +67,65 @@ export default function Home() {
     const loadDocuments = async () => {
       try {
         setIsLoadingData(true)
+        console.log('🔄 Carregando dados dos documentos...')
+        
+        // Carrega metadados primeiro
+        const metadataResponse = await fetch('/data/search-metadata.json')
+        if (!metadataResponse.ok) {
+          throw new Error('Erro ao carregar metadados')
+        }
+        const metadataData = await metadataResponse.json()
+        setMetadata(metadataData)
         
         // Carrega dados do catecismo
-        const catecismoResponse = await fetch('/data/catecismo.json')
+        const catecismoResponse = await fetch('/data/catecismo-search.json')
+        if (!catecismoResponse.ok) {
+          throw new Error('Erro ao carregar dados do catecismo')
+        }
         const catecismoData = await catecismoResponse.json()
         
         // Carrega dados do direito canônico  
-        const direitoResponse = await fetch('/data/direito_canonico.json')
+        const direitoResponse = await fetch('/data/direito-search.json')
+        if (!direitoResponse.ok) {
+          throw new Error('Erro ao carregar dados do direito canônico')
+        }
         const direitoData = await direitoResponse.json()
         
-        // Extrai o texto dos objetos JSON
-        const catecismoTexts = catecismoData.content.map((item: any) => item.text)
-        const direitoTexts = direitoData.content.map((item: any) => item.text)
+        const documentsData = {
+          catecismo: catecismoData.entries || [],
+          direito_canonico: direitoData.entries || []
+        }
         
-        setDocumentsData({
-          catecismo: catecismoTexts,
-          direito_canonico: direitoTexts
+        setDocumentsData(documentsData)
+        
+        console.log('✅ Documentos carregados com sucesso:', {
+          catecismo: documentsData.catecismo.length + ' entradas',
+          direito_canonico: documentsData.direito_canonico.length + ' entradas',
+          metadata: metadataData
         })
         
-        console.log('Documentos carregados:', {
-          catecismo: catecismoTexts.length + ' entradas',
-          direito_canonico: direitoTexts.length + ' entradas'
-        })
       } catch (error) {
-        console.error('Erro ao carregar documentos:', error)
-        // Fallback para dados básicos se JSON não funcionar
+        console.error('❌ Erro ao carregar documentos:', error)
+        setError('Erro ao carregar documentos. Usando dados básicos...')
+        
+        // Fallback com dados básicos
         const fallbackData = {
           catecismo: [
-            "1. O desejo de Deus está inscrito no coração do homem, porque o homem foi criado por Deus e para Deus; e Deus não cessa de atrair o homem a si, e somente em Deus o homem encontrará a verdade e a felicidade que não cessa de procurar.",
-            "2. «Fala, porque o teu servo escuta» (1Sm 3,10). A Igreja, seguindo o exemplo dos apóstolos, nunca cessou de proclamar a todos que Jesus Cristo, Filho de Deus feito homem, é «o Caminho, a Verdade e a Vida» (Jo 14,6).",
-            "3. Aqueles que com a ajuda de Deus acolheram o apelo de Cristo e a ele livremente responderam foram, por sua vez, levados pelo amor de Cristo a anunciar por toda a parte a Boa Nova."
+            { text: "1. O desejo de Deus está inscrito no coração do homem, porque o homem foi criado por Deus e para Deus; e Deus não cessa de atrair o homem a si, e somente em Deus o homem encontrará a verdade e a felicidade que não cessa de procurar.", lineNumber: 1, paragraph: "1" },
+            { text: "2. «Fala, porque o teu servo escuta» (1Sm 3,10). A Igreja, seguindo o exemplo dos apóstolos, nunca cessou de proclamar a todos que Jesus Cristo, Filho de Deus feito homem, é «o Caminho, a Verdade e a Vida» (Jo 14,6).", lineNumber: 2, paragraph: "2" },
+            { text: "3. Aqueles que com a ajuda de Deus acolheram o apelo de Cristo e a ele livremente responderam foram, por sua vez, levados pelo amor de Cristo a anunciar por toda a parte a Boa Nova.", lineNumber: 3, paragraph: "3" }
           ],
           direito_canonico: [
-            "Cân. 1 - As normas do presente Código referem-se apenas à Igreja latina.",
-            "Cân. 2 - Na maior parte, o Código não define os ritos que devem ser observados na celebração das ações litúrgicas; por isso as leis litúrgicas até agora vigentes conservam a sua força.",
-            "Cân. 3 - Os cânones do Código não ab-rogam nem derrogam as convenções que a Sé Apostólica celebrou com as nações."
+            { text: "Cân. 1 - As normas do presente Código referem-se apenas à Igreja latina.", lineNumber: 1, canon: "1" },
+            { text: "Cân. 2 - Na maior parte, o Código não define os ritos que devem ser observados na celebração das ações litúrgicas; por isso as leis litúrgicas até agora vigentes conservam a sua força.", lineNumber: 2, canon: "2" },
+            { text: "Cân. 3 - Os cânones do Código não ab-rogam nem derrogam as convenções que a Sé Apostólica celebrou com as nações.", lineNumber: 3, canon: "3" }
           ]
         }
         setDocumentsData(fallbackData)
+        setMetadata({
+          catecismo: { total: 3, lastParagraph: 3 },
+          direito_canonico: { total: 3, lastCanon: 3 }
+        })
       } finally {
         setIsLoadingData(false)
       }
@@ -116,35 +156,43 @@ export default function Home() {
       const results: SearchResult[] = []
       const searchRegex = new RegExp(searchTerm.trim(), 'gi')
 
+      console.log(`🔍 Buscando por: "${searchTerm.trim()}"`)
+
       // Buscar no catecismo
-      documentsData.catecismo.forEach((text: string, index: number) => {
-        if (searchRegex.test(text)) {
-          const paragraphMatch = text.match(/^(\d+)\./)
+      documentsData.catecismo.forEach((entry: SearchEntry, index: number) => {
+        if (searchRegex.test(entry.text)) {
           results.push({
-            text,
+            text: entry.text,
             document: 'catecismo',
-            lineNumber: index + 1,
-            paragraph: paragraphMatch ? paragraphMatch[1] : undefined,
+            lineNumber: entry.lineNumber,
+            paragraph: entry.paragraph,
             context: {
-              before: documentsData.catecismo.slice(Math.max(0, index - 1), index),
-              after: documentsData.catecismo.slice(index + 1, index + 2)
+              before: documentsData.catecismo
+                .slice(Math.max(0, index - 1), index)
+                .map(e => e.text),
+              after: documentsData.catecismo
+                .slice(index + 1, index + 2)
+                .map(e => e.text)
             }
           })
         }
       })
 
       // Buscar no direito canônico
-      documentsData.direito_canonico.forEach((text: string, index: number) => {
-        if (searchRegex.test(text)) {
-          const canonMatch = text.match(/Cân\.\s*(\d+)/)
+      documentsData.direito_canonico.forEach((entry: SearchEntry, index: number) => {
+        if (searchRegex.test(entry.text)) {
           results.push({
-            text,
+            text: entry.text,
             document: 'direito_canonico',
-            lineNumber: index + 1,
-            canon: canonMatch ? canonMatch[1] : undefined,
+            lineNumber: entry.lineNumber,
+            canon: entry.canon,
             context: {
-              before: documentsData.direito_canonico.slice(Math.max(0, index - 1), index),
-              after: documentsData.direito_canonico.slice(index + 1, index + 2)
+              before: documentsData.direito_canonico
+                .slice(Math.max(0, index - 1), index)
+                .map(e => e.text),
+              after: documentsData.direito_canonico
+                .slice(index + 1, index + 2)
+                .map(e => e.text)
             }
           })
         }
@@ -163,9 +211,9 @@ export default function Home() {
       setResults(results)
       setSearchResponse(response)
       
-      console.log(`Busca realizada: "${searchTerm}" - ${results.length} resultados`)
+      console.log(`✅ Busca concluída: ${results.length} resultados encontrados`)
     } catch (error) {
-      console.error('Erro na busca:', error)
+      console.error('❌ Erro na busca:', error)
       setError('Erro ao realizar a busca. Tente novamente.')
     } finally {
       setIsLoading(false)
@@ -214,7 +262,8 @@ export default function Home() {
       <div className="min-h-screen bg-gradient-to-br from-blue-50 to-indigo-100 flex items-center justify-center">
         <div className="text-center">
           <Loader2 className="h-8 w-8 animate-spin mx-auto mb-4 text-blue-600" />
-          <p className="text-gray-600">Carregando documentos da Igreja...</p>
+          <p className="text-gray-600 text-lg font-medium">Carregando documentos da Igreja...</p>
+          <p className="text-gray-500 text-sm mt-2">Aguarde, carregando dados completos...</p>
         </div>
       </div>
     )
@@ -268,11 +317,28 @@ export default function Home() {
             </p>
             
             {/* Status dos documentos carregados */}
-            {documentsData && (
-              <div className={`text-xs sm:text-sm mb-4 ${
-                isDarkMode ? 'text-gray-400' : 'text-gray-500'
+            {metadata && documentsData && (
+              <div className={`text-xs sm:text-sm mb-4 p-3 rounded-lg ${
+                isDarkMode 
+                  ? 'bg-slate-800/50 text-gray-300 border border-slate-700' 
+                  : 'bg-white/70 text-gray-600 border border-gray-200'
               }`}>
-                📚 {documentsData.catecismo.length} parágrafos do Catecismo • {documentsData.direito_canonico.length} cânones carregados
+                <div className="flex items-center justify-center gap-2 mb-1">
+                  <Book className="h-4 w-4" />
+                  <span className="font-medium">Base de Dados Carregada</span>
+                </div>
+                <div className="text-xs">
+                  📚 {metadata.catecismo.total.toLocaleString()} parágrafos do Catecismo • 
+                  ⚖️ {metadata.direito_canonico.total.toLocaleString()} entradas do Direito Canônico
+                </div>
+                {error && (
+                  <div className={`mt-2 text-xs flex items-center gap-1 ${
+                    isDarkMode ? 'text-yellow-300' : 'text-orange-600'
+                  }`}>
+                    <AlertCircle className="h-3 w-3" />
+                    <span>Usando dados básicos</span>
+                  </div>
+                )}
               </div>
             )}
             
@@ -318,7 +384,7 @@ export default function Home() {
                 <div className="flex-1">
                   <Input
                     type="text"
-                    placeholder="Digite sua busca (mín. 2 caracteres)..."
+                    placeholder="Digite sua busca (mín. 2 caracteres)... Ex: Deus, Jesus, matrimônio, oração"
                     value={searchTerm}
                     onChange={(e) => setSearchTerm(e.target.value)}
                     className={`w-full transition-colors duration-300 text-base ${
@@ -345,7 +411,7 @@ export default function Home() {
                   Buscar
                 </Button>
               </form>
-              {error && (
+              {error && !isLoadingData && (
                 <p className={`mt-3 text-sm font-medium ${
                   isDarkMode ? 'text-red-300 bg-red-900/20 px-3 py-2 rounded border border-red-800/30' : 'text-red-600'
                 }`}>{error}</p>
@@ -436,7 +502,7 @@ export default function Home() {
           {/* Results */}
           {results.length > 0 && (
             <div className="space-y-3 sm:space-y-4">
-              {results.map((result, index) => (
+              {results.slice(0, 50).map((result, index) => (
                 <Card key={index} className={`overflow-hidden transition-colors duration-300 ${
                   isDarkMode ? 'bg-slate-800/90 border-slate-600 shadow-lg backdrop-blur-sm' : 'bg-white border-gray-200'
                 }`}>
@@ -494,6 +560,22 @@ export default function Home() {
                   </CardContent>
                 </Card>
               ))}
+              
+              {results.length > 50 && (
+                <Card className={`transition-colors duration-300 ${
+                  isDarkMode ? 'bg-slate-800/90 border-slate-600 shadow-lg backdrop-blur-sm' : 'bg-white border-gray-200'
+                }`}>
+                  <CardContent className="p-4 text-center">
+                    <p className={`text-sm ${
+                      isDarkMode ? 'text-gray-300' : 'text-gray-600'
+                    }`}>
+                      Mostrando primeiros 50 resultados de {results.length} encontrados.
+                      <br />
+                      <span className="text-xs">Refine sua busca para resultados mais específicos.</span>
+                    </p>
+                  </CardContent>
+                </Card>
+              )}
             </div>
           )}
 
@@ -512,6 +594,11 @@ export default function Home() {
                 }`}>
                   Tente usar palavras diferentes ou verifique a ortografia
                 </p>
+                <div className={`mt-4 text-xs ${
+                  isDarkMode ? 'text-gray-500' : 'text-gray-400'
+                }`}>
+                  <p>Sugestões: "Deus", "Jesus", "Igreja", "amor", "fé", "sacramento", "matrimônio", "batismo"</p>
+                </div>
               </CardContent>
             </Card>
           )}
