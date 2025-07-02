@@ -69,6 +69,8 @@ export default function Home() {
     content: string[];
     type: 'paragraph' | 'canon';
     number: string;
+    matchCount?: number;
+    currentMatch?: number;
   } | null>(null)
   const [isLoadingIntegral, setIsLoadingIntegral] = useState(false)
 
@@ -305,11 +307,26 @@ export default function Home() {
           ? `Parágrafo ${number} - Catecismo da Igreja Católica`
           : `Cânon ${number} - Código de Direito Canônico`
         
+        const content = entries.map(entry => entry.text)
+        
+        // Conta ocorrências da palavra pesquisada se houver termo de busca
+        let matchCount = 0
+        if (searchTerm && searchTerm.trim()) {
+          const searchRegex = new RegExp(searchTerm.trim(), 'gi')
+          content.forEach(text => {
+            const matches = text.match(searchRegex)
+            if (matches) {
+              matchCount += matches.length
+            }
+          })
+        }
+        
         setIntegralContent({
-          title,
-          content: entries.map(entry => entry.text),
+          title: matchCount > 0 ? `${title} (${matchCount} ocorrência${matchCount !== 1 ? 's' : ''} de "${searchTerm}")` : title,
+          content,
           type,
-          number
+          number,
+          matchCount
         })
       } else {
         setIntegralContent({
@@ -751,7 +768,7 @@ export default function Home() {
             <div className={`flex items-center justify-between p-4 sm:p-6 border-b transition-colors duration-300 ${
               isDarkMode ? 'border-slate-600 bg-slate-700/50' : 'border-gray-200 bg-gray-50'
             }`}>
-              <div className="flex items-center gap-3">
+              <div className="flex items-center gap-3 flex-1">
                 {integralContent?.type === 'paragraph' ? (
                   <Book className={`h-5 w-5 ${isDarkMode ? 'text-blue-400' : 'text-blue-600'}`} />
                 ) : (
@@ -763,6 +780,16 @@ export default function Home() {
                   {isLoadingIntegral ? 'Carregando...' : integralContent?.title}
                 </h3>
               </div>
+              
+              {/* Indicador de busca quando há ocorrências */}
+              {integralContent?.matchCount && integralContent.matchCount > 0 && searchTerm && (
+                <div className={`hidden sm:flex items-center gap-2 px-3 py-1 rounded-full text-xs font-medium ${
+                  isDarkMode ? 'bg-yellow-900/40 text-yellow-300 border border-yellow-700/50' : 'bg-yellow-100 text-yellow-800 border border-yellow-300'
+                }`}>
+                  <span>"{searchTerm}" destacado</span>
+                </div>
+              )}
+              
               <button
                 onClick={() => setShowIntegralModal(false)}
                 className={`p-2 rounded-lg transition-colors duration-200 ${
@@ -790,7 +817,7 @@ export default function Home() {
                     <p key={index} className={`leading-relaxed text-sm sm:text-base ${
                       isDarkMode ? 'text-gray-200' : 'text-gray-800'
                     }`}>
-                      {paragraph}
+                      {searchTerm ? highlightText(paragraph, searchTerm) : paragraph}
                     </p>
                   ))}
                   
@@ -812,10 +839,19 @@ export default function Home() {
               <div className={`text-xs sm:text-sm ${
                 isDarkMode ? 'text-gray-400' : 'text-gray-500'
               }`}>
-                {integralContent?.type === 'paragraph' 
-                  ? 'Catecismo da Igreja Católica' 
-                  : 'Código de Direito Canônico'
-                }
+                <div>
+                  {integralContent?.type === 'paragraph' 
+                    ? 'Catecismo da Igreja Católica' 
+                    : 'Código de Direito Canônico'
+                  }
+                </div>
+                {integralContent?.matchCount && integralContent.matchCount > 0 && searchTerm && (
+                  <div className={`mt-1 text-xs ${
+                    isDarkMode ? 'text-yellow-300' : 'text-yellow-700'
+                  }`}>
+                    {integralContent.matchCount} ocorrência{integralContent.matchCount !== 1 ? 's' : ''} de "{searchTerm}" destacada{integralContent.matchCount !== 1 ? 's' : ''}
+                  </div>
+                )}
               </div>
               <div className="flex gap-2">
                 <button
