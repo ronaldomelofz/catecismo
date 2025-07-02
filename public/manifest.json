@@ -1,0 +1,53 @@
+{
+  "name": "Consulta nos Documentos da Igreja",
+  "short_name": "Consulta Igreja",
+  "description": "Busque e consulte facilmente o Catecismo da Igreja Católica e o Código de Direito Canônico",
+  "start_url": "/",
+  "display": "standalone",
+  "background_color": "#1e293b",
+  "theme_color": "#3b82f6",
+  "orientation": "portrait-primary",
+  "scope": "/",
+  "lang": "pt-BR",
+  "categories": ["education", "reference", "books"],
+  "icons": [
+    {
+      "src": "/icon-192x192.png",
+      "sizes": "192x192",
+      "type": "image/png",
+      "purpose": "any maskable"
+    },
+    {
+      "src": "/icon-512x512.png",
+      "sizes": "512x512",
+      "type": "image/png",
+      "purpose": "any maskable"
+    }
+  ],
+  "shortcuts": [
+    {
+      "name": "Buscar no Catecismo",
+      "short_name": "Catecismo",
+      "description": "Buscar diretamente no Catecismo da Igreja Católica",
+      "url": "/?doc=catecismo",
+      "icons": [
+        {
+          "src": "/icon-192x192.png",
+          "sizes": "192x192"
+        }
+      ]
+    },
+    {
+      "name": "Buscar no Direito Canônico",
+      "short_name": "Direito Canônico",
+      "description": "Buscar diretamente no Código de Direito Canônico",
+      "url": "/?doc=direito_canonico",
+      "icons": [
+        {
+          "src": "/icon-192x192.png",
+          "sizes": "192x192"
+        }
+      ]
+    }
+  ]
+} 
