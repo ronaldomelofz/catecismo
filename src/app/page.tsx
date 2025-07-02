@@ -735,11 +735,11 @@ export default function Home() {
             }
           }}
         >
-          <div className={`w-full max-w-4xl max-h-[90vh] rounded-lg shadow-2xl transition-colors duration-300 ${
+          <div className={`w-full max-w-4xl max-h-[85vh] rounded-lg shadow-2xl transition-colors duration-300 ${
             isDarkMode ? 'bg-slate-800 border-slate-600' : 'bg-white border-gray-200'
-          } border overflow-hidden`}>
+          } border overflow-hidden flex flex-col`}>
             {/* Header do Modal */}
-            <div className={`flex items-center justify-between p-4 sm:p-6 border-b transition-colors duration-300 ${
+            <div className={`flex-shrink-0 flex items-center justify-between p-4 sm:p-6 border-b transition-colors duration-300 ${
               isDarkMode ? 'border-slate-600 bg-slate-700/50' : 'border-gray-200 bg-gray-50'
             }`}>
               <div className="flex items-center gap-3 flex-1">
@@ -778,7 +778,7 @@ export default function Home() {
             </div>
 
             {/* Conteúdo do Modal */}
-            <div className="overflow-y-auto max-h-[calc(90vh-120px)] p-4 sm:p-6">
+            <div className="overflow-y-auto flex-1 p-4 sm:p-6 min-h-0">
               {isLoadingIntegral ? (
                 <div className="flex items-center justify-center py-12">
                   <Loader2 className={`h-8 w-8 animate-spin ${
@@ -807,7 +807,7 @@ export default function Home() {
             </div>
 
             {/* Footer do Modal */}
-            <div className={`flex items-center justify-between p-4 sm:p-6 border-t transition-colors duration-300 ${
+            <div className={`flex-shrink-0 flex items-center justify-between p-4 sm:p-6 border-t transition-colors duration-300 ${
               isDarkMode ? 'border-slate-600 bg-slate-700/50' : 'border-gray-200 bg-gray-50'
             }`}>
               <div className={`text-xs sm:text-sm ${
