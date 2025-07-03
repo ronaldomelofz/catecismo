@@ -476,41 +476,44 @@ export default function Home() {
         console.log(`📄 PRIMEIRA ENTRADA: "${content[0]?.substring(0, 100)}..."`);
         console.log(`📝 TODAS AS ENTRADAS:`, content);
         
-        // 🚨🚨🚨 SOLUÇÃO UNIVERSAL PARA TODOS OS PARÁGRAFOS E CÂNONES 🚨🚨🚨
-        console.log(`🔧 VERIFICANDO INTEGRIDADE DO ${type.toUpperCase()} ${number}...`);
-        
-        // Verifica se o conteúdo está completo (deve começar com o número)
+        // 🚨 SISTEMA UNIVERSAL DE CORREÇÃO DE INTEGRIDADE 🚨
         const primeiraLinha = content[0] || '';
         const deveComearCom = number + '.';
         const estaCompleto = primeiraLinha.startsWith(deveComearCom);
         
-        console.log(`📋 Primeira linha: "${primeiraLinha.substring(0, 100)}..."`);
-        console.log(`✅ Deve começar com: "${deveComearCom}"`);
-        console.log(`🎯 Está completo: ${estaCompleto ? 'SIM' : 'NÃO'}`);
+        console.log(`🔧 ${type.toUpperCase()} ${number}: ${estaCompleto ? 'COMPLETO' : 'INCOMPLETO - CORRIGINDO...'}`);
         
         if (!estaCompleto) {
-          console.log(`🚨 CONTEÚDO INCOMPLETO DETECTADO! Aplicando correção...`);
-          
-          // Busca a entrada que comece corretamente com o número
+          // Busca todas as entradas e a inicial
           const campo = type === 'paragraph' ? 'paragraph' : 'canon';
           const todasEntradas = data.filter(entry => entry[campo] === number);
-          const entradaInicial = todasEntradas.find(entry => entry.text.startsWith(deveComearCom));
+          let entradaInicial = todasEntradas.find(entry => entry.text.startsWith(deveComearCom));
           
-          console.log(`📚 Total de entradas encontradas: ${todasEntradas.length}`);
-          console.log(`🔍 Entrada inicial encontrada: ${entradaInicial ? 'SIM' : 'NÃO'}`);
+          // Se não encontrar, tenta regex mais flexível
+          if (!entradaInicial) {
+            entradaInicial = todasEntradas.find(entry => {
+              const regex = new RegExp(`^${number}[.\\s]`, 'i');
+              return regex.test(entry.text);
+            });
+          }
+          
+          // Se ainda não encontrar, busca em todos os dados
+          if (!entradaInicial) {
+            entradaInicial = data.find(entry => {
+              const regex = new RegExp(`^${number}[.\\s]`, 'i');
+              return regex.test(entry.text);
+            });
+          }
           
           if (entradaInicial) {
-            console.log(`📄 Texto da entrada inicial: "${entradaInicial.text.substring(0, 150)}..."`);
+            console.log(`✅ CORREÇÃO APLICADA: "${entradaInicial.text.substring(0, 80)}..."`);
             
             // Reconstroi o conteúdo na ordem correta
-            const novoConteudo = [];
+            const novoConteudo = [entradaInicial.text];
             
-            // 1. PRIMEIRO: A entrada que começa com o número
-            novoConteudo.push(entradaInicial.text);
-            
-            // 2. DEPOIS: Todas as outras entradas (exceto a inicial)
+            // Adiciona as outras partes (exceto a inicial)
             todasEntradas.forEach(entry => {
-              if (!entry.text.startsWith(deveComearCom)) {
+              if (entry.text !== entradaInicial.text) {
                 novoConteudo.push(entry.text);
               }
             });
@@ -519,39 +522,19 @@ export default function Home() {
             content.length = 0;
             content.push(...novoConteudo);
             
-            console.log(`✅ CONTEÚDO CORRIGIDO! ${content.length} partes ordenadas corretamente.`);
-            console.log(`🎯 Nova primeira linha: "${content[0].substring(0, 100)}..."`);
-            
           } else {
-            console.log(`❌ ENTRADA INICIAL NÃO ENCONTRADA! Tentando fallback...`);
-            
-            // Fallback: procura qualquer texto que contenha o número no início
-            const entradaFallback = data.find(entry => {
-              const regex = new RegExp(`^${number}[.\\s]`, 'i');
-              return regex.test(entry.text);
-            });
-            
-            if (entradaFallback) {
-              console.log(`🔄 FALLBACK encontrado: "${entradaFallback.text.substring(0, 100)}..."`);
-              content.unshift(entradaFallback.text); // Adiciona no início
-            } else {
-              console.log(`⚠️ NENHUM FALLBACK ENCONTRADO - mantendo conteúdo original`);
-            }
+            console.log(`❌ FALHA NA CORREÇÃO - mantendo original`);
           }
-        } else {
-          console.log(`✅ CONTEÚDO JÁ ESTÁ COMPLETO - nenhuma correção necessária`);
         }
 
-        // VERIFICAÇÃO ESPECIAL ADICIONAL PARA 1613 (caso ainda tenha problemas)
+        // VERIFICAÇÃO ESPECIAL PARA 1613 (backup)
         if (number === '1613' && type === 'paragraph') {
-          console.log(`🎯 VERIFICAÇÃO ESPECIAL PARA 1613...`);
           if (!content[0] || !content[0].includes('No limiar de sua vida pública')) {
-            console.log(`🚨 APLICANDO HARDCODE ESPECIAL PARA 1613!`);
+            console.log(`🎯 APLICANDO BACKUP HARDCODED PARA 1613`);
             content.length = 0;
             content.push(
               "1613. No limiar de sua vida pública, Jesus opera seu primeiro sinal a pedido de sua Mãe por ocasião de uma festa de casamento. A Igreja atribui grande importância à presença de Jesus nas núpcias de Caná. Vê nela a confirmação de que o casamento é uma realidade boa e o anúncio de que, daí em diante, ser ele um sinal eficaz da presença de Cristo."
             );
-            console.log(`🔧 TEXTO HARDCODED 1613 APLICADO!`);
           }
         }
         
