@@ -93,7 +93,7 @@ function createSearchData() {
   function isIndexContent(text) {
     const indexPatterns = [
       // Padrões típicos de índices - MUITO MAIS RIGOROSOS
-      /^\d+\.\s*[A-ZÀÁÂÃÉÊÍÓÔÕÚÜ]/i, // "1. ALGUM TÍTULO"
+      // REMOVIDO: /^\d+\.\s*[A-ZÀÁÂÃÉÊÍÓÔÕÚÜ]/i, // "1. ALGUM TÍTULO" - estava pegando parágrafos normais
       /^[A-Z\s]+\.\.\.\s*\d+$/i, // "ALGUM TÍTULO... 123"
       /^[A-Z\s]+\s*\.\.\.\s*\d+$/i, // "ALGUM TÍTULO ... 123"
       /^\d+\s*\.\s*[A-Z\s]+\s*\.\.\./i, // "1. TÍTULO..."
