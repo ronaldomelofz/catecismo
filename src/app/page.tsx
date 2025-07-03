@@ -540,6 +540,15 @@ export default function Home() {
           textoCompleto = "1653. A fecundidade do amor conjugal se estende aos frutos vida moral, espiritual e sobrenatural que os pais transmitem seus filhos pela educação. Os pais são os principais e primeiros educadores de seus filhos. Neste sentido, a tarefa fundamental do Matrimônio e da família é estar a serviço da vida.";
         }
         
+        // CORREÇÕES ESPECÍFICAS PARA CÂNONES DO DIREITO CANÔNICO
+        if (number === '1653' && type === 'canon') {
+          textoCompleto = "1653. § 1. A não ser que a lei particular determine outra coisa, o Bispo da diocese, em que foi proferida a sentença em primeiro grau, deve dar-lhe execução por si mesmo ou por meio de outrem. § 2. Se ele se negar ou se mostrar negligente, a execução, a instância da parte interessada ou oficiosamente, compete à autoridade a que, nos termos do cân. 1439, está sujeito o tribunal de apelação. § 3. Entre religiosos, a execução da sentença compete ao Superior que proferiu a sentença a executar, ou que deu delegação ao juiz.";
+        }
+        
+        if (number === '1439' && type === 'canon') {
+          textoCompleto = "1439. § 1. Contra a sentença de primeira instância de qualquer tribunal, é sempre lícito apelar para tribunal superior, salvas as prescrições dos câns. 1629 e 1741. § 2. Contra a sentença de primeira instância de um tribunal de primeira instância que não seja constituído pelo Bispo diocesano, recorre-se para o tribunal de segunda instância do Bispo diocesano. § 3. Em causas julgadas pelo próprio Bispo, o apelo interponha-se para o Metropolita ou, se a causa foi julgada pelo próprio Metropolita, para o Sufragâneo por ele designado de modo estável. § 4. Em causas julgadas em primeira instância pelo Metropolita, o apelo interponha-se para a Sé Apostólica; se foram julgadas pelo Sufragâneo, para o Metropolita.";
+        }
+        
         // Substitui todo o conteúdo pelo texto único e completo
         if (textoCompleto) {
           content.length = 0;
