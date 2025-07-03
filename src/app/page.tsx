@@ -486,15 +486,25 @@ export default function Home() {
                            primeiraLinha.includes('Jesus expõe') ||
                            primeiraLinha.includes('No limiar');
         
-        if (!estaCompleto || primeiraLinha.includes('aos antigos:')) {
-          console.log(`🔧 Corrigindo ${type.toUpperCase()} ${number}...`);
+        // PRIMEIRO: Remove duplicatas do conteúdo atual
+        const contentSemDuplicatas = content.filter((item, index, array) => {
+          return array.findIndex(other => other === item) === index;
+        });
+        
+        if (!estaCompleto || primeiraLinha.includes('aos antigos:') || contentSemDuplicatas.length !== content.length) {
+          console.log(`🔧 Corrigindo ${type.toUpperCase()} ${number} - removendo duplicatas...`);
           
           // ESTRATÉGIA 1: Busca específica por campo
           const campo = type === 'paragraph' ? 'paragraph' : 'canon';
           const todasEntradas = data.filter(entry => entry[campo] === number);
           
+          // Remove duplicatas das entradas
+          const entradasUnicas = todasEntradas.filter((item, index, array) => {
+            return array.findIndex(other => other.text === item.text) === index;
+          });
+          
           // ESTRATÉGIA 2: Busca por texto que comece com número E tenha conteúdo adequado
-          let entradaInicial = data.find(entry => {
+          let entradaInicial = entradasUnicas.find(entry => {
             const texto = entry.text;
             return (texto.startsWith(deveComearCom) || 
                    texto.startsWith(number + ' ') ||
@@ -512,22 +522,27 @@ export default function Home() {
                      (texto.indexOf(number + '.') < 20);
             });
             
+            // Remove duplicatas
+            const entradasComNumeroUnicas = entradasComNumero.filter((item, index, array) => {
+              return array.findIndex(other => other.text === item.text) === index;
+            });
+            
             // Pega a entrada mais longa (provavelmente mais completa)
-            if (entradasComNumero.length > 0) {
-              entradaInicial = entradasComNumero.reduce((maior, atual) => 
+            if (entradasComNumeroUnicas.length > 0) {
+              entradaInicial = entradasComNumeroUnicas.reduce((maior, atual) => 
                 atual.text.length > maior.text.length ? atual : maior);
             }
           }
           
           // ESTRATÉGIA 4: Construção manual do início se não encontrar
           let textoInicial = '';
-          if (!entradaInicial && todasEntradas.length > 0) {
+          if (!entradaInicial && entradasUnicas.length > 0) {
             // Para parágrafos específicos, força texto correto
             if (number === '2153') {
               textoInicial = "2153. Jesus expõe o segundo mandamento no Sermão da Montanha: \"Ouvistes o que foi dito aos antigos: 'Não perjurarás, mas cumprirás os teus juramentos para com o Senhor'. Eu, porém, vos digo: não jureis em hipótese nenhuma... Seja o vosso 'sim', sim, e o vosso 'não', não. O que passa disso vem do Maligno\" (Mt 5,33-34.37). Jesus ensina que todo juramento implica uma referência a Deus e que a presença de Deus e de sua verdade deve ser honrada em toda palavra. A discrição em recorrer a Deus na linguagem caminha de mãos dadas com a atenção respeitosa à sua presença, testemunhada ou desprezada, em cada uma de nossas afirmações.";
             } else {
               // Pega a primeira entrada e força o número no início
-              const primeiraEntrada = todasEntradas[0].text;
+              const primeiraEntrada = entradasUnicas[0].text;
               textoInicial = `${number}. ${primeiraEntrada}`;
             }
           } else if (entradaInicial) {
@@ -535,25 +550,36 @@ export default function Home() {
           }
           
           if (textoInicial) {
-            // Reconstroi o conteúdo completo
-            const novoConteudo = [textoInicial];
+            // Para parágrafos específicos como 2153, usa apenas o texto hardcoded
+            if (number === '2153') {
+              content.length = 0;
+              content.push(textoInicial);
+            } else {
+              // Reconstroi o conteúdo completo sem duplicatas
+              const novoConteudo = [textoInicial];
+              
+              // Adiciona outras partes (exceto a que já foi usada e partes incompletas)
+              entradasUnicas.forEach(entry => {
+                if (entry.text !== textoInicial && 
+                    !entry.text.startsWith(deveComearCom) &&
+                    !entry.text.includes('aos antigos:') &&
+                    !novoConteudo.includes(entry.text) &&
+                    !novoConteudo.some(existing => existing.includes(entry.text.substring(0, 50)))) {
+                  novoConteudo.push(entry.text);
+                }
+              });
+              
+              // Substitui todo o conteúdo
+              content.length = 0;
+              content.push(...novoConteudo);
+            }
             
-            // Adiciona outras partes (exceto a que já foi usada e partes incompletas)
-            todasEntradas.forEach(entry => {
-              if (entry.text !== textoInicial && 
-                  !entry.text.startsWith(deveComearCom) &&
-                  !entry.text.includes('aos antigos:') &&
-                  !novoConteudo.includes(entry.text)) {
-                novoConteudo.push(entry.text);
-              }
-            });
-            
-            // Substitui todo o conteúdo
-            content.length = 0;
-            content.push(...novoConteudo);
-            
-            console.log(`✅ ${type.toUpperCase()} ${number} corrigido com sucesso!`);
+            console.log(`✅ ${type.toUpperCase()} ${number} corrigido - duplicatas removidas!`);
           }
+        } else {
+          // Mesmo se estiver "completo", remove duplicatas
+          content.length = 0;
+          content.push(...contentSemDuplicatas);
         }
 
         // VERIFICAÇÃO ESPECIAL PARA 1613 (backup garantido)
