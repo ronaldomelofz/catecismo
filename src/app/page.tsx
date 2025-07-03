@@ -476,24 +476,26 @@ export default function Home() {
         console.log(`📄 PRIMEIRA ENTRADA: "${content[0]?.substring(0, 100)}..."`);
         console.log(`📝 TODAS AS ENTRADAS:`, content);
         
-        // VERIFICAÇÃO ESPECIAL PARA 1613
+        // VERIFICAÇÃO ESPECIAL PARA 1613 - FORÇAR ORDEM CORRETA
         if (number === '1613') {
-          const temInicio = content.some(text => text.includes('1613.') || text.includes('No limiar'));
-          console.log(`🎯 PARÁGRAFO 1613 - Tem início correto: ${temInicio}`);
+          console.log(`🎯 PARÁGRAFO 1613 - Verificação especial iniciada`);
           
-          if (!temInicio) {
-            console.log(`🚨 PROBLEMA DETECTADO! Forçando busca manual...`);
-            // Busca manual forçada
-            const manualEntry = data.find(entry => 
-              entry.text.includes('1613.') || 
-              entry.text.includes('No limiar de sua vida pública')
-            );
+          // Força busca pela entrada que comece com 1613.
+          const entradaInicial = data.find(entry => entry.text.match(/^1613\./));
+          console.log(`🔍 Entrada inicial encontrada:`, entradaInicial ? 'SIM' : 'NÃO');
+          
+          if (entradaInicial) {
+            // Remove a entrada inicial se já estiver no conteúdo
+            const contentSemInicial = content.filter(text => !text.match(/^1613\./));
             
-            if (manualEntry) {
-              console.log(`🔧 CORREÇÃO: Encontrou entrada manual:`, manualEntry.text);
-              // Adiciona no início
-              content.unshift(manualEntry.text);
-            }
+            // Reconstroi o conteúdo com a entrada inicial no começo
+            content.length = 0; // Limpa o array
+            content.push(entradaInicial.text); // Adiciona entrada inicial primeiro
+            content.push(...contentSemInicial); // Adiciona resto
+            
+            console.log(`🔧 PARÁGRAFO 1613 CORRIGIDO - Nova ordem:`, content.map(c => c.substring(0, 50)));
+          } else {
+            console.log(`❌ ENTRADA INICIAL 1613 NÃO ENCONTRADA!`);
           }
         }
         
