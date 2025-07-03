@@ -481,9 +481,9 @@ export default function Home() {
         const deveComearCom = number + '.';
         const estaCompleto = primeiraLinha.startsWith(deveComearCom);
         
-        console.log(`🔧 ${type.toUpperCase()} ${number}: ${estaCompleto ? 'COMPLETO' : 'INCOMPLETO - APLICANDO CORREÇÃO AGRESSIVA...'}`);
-        
         if (!estaCompleto) {
+          console.log(`🔧 Corrigindo ${type.toUpperCase()} ${number}...`);
+          
           // ESTRATÉGIA 1: Busca específica por campo
           const campo = type === 'paragraph' ? 'paragraph' : 'canon';
           const todasEntradas = data.filter(entry => entry[campo] === number);
@@ -510,10 +510,8 @@ export default function Home() {
             // Pega a primeira entrada e força o número no início
             const primeiraEntrada = todasEntradas[0].text;
             textoInicial = `${number}. ${primeiraEntrada}`;
-            console.log(`🔨 CONSTRUÇÃO MANUAL: "${textoInicial.substring(0, 80)}..."`);
           } else if (entradaInicial) {
             textoInicial = entradaInicial.text;
-            console.log(`✅ ENTRADA ENCONTRADA: "${textoInicial.substring(0, 80)}..."`);
           }
           
           if (textoInicial) {
@@ -533,16 +531,13 @@ export default function Home() {
             content.length = 0;
             content.push(...novoConteudo);
             
-            console.log(`🎯 CORREÇÃO APLICADA! Novo conteúdo com ${content.length} partes`);
-          } else {
-            console.log(`❌ FALHA TOTAL NA CORREÇÃO para ${type} ${number}`);
+            console.log(`✅ ${type.toUpperCase()} ${number} corrigido com sucesso!`);
           }
         }
 
         // VERIFICAÇÃO ESPECIAL PARA 1613 (backup garantido)
         if (number === '1613' && type === 'paragraph') {
           if (!content[0] || !content[0].includes('No limiar de sua vida pública')) {
-            console.log(`🎯 BACKUP HARDCODED PARA 1613 ATIVADO`);
             content.length = 0;
             content.push(
               "1613. No limiar de sua vida pública, Jesus opera seu primeiro sinal a pedido de sua Mãe por ocasião de uma festa de casamento. A Igreja atribui grande importância à presença de Jesus nas núpcias de Caná. Vê nela a confirmação de que o casamento é uma realidade boa e o anúncio de que, daí em diante, ser ele um sinal eficaz da presença de Cristo."
