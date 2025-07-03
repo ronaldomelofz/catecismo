@@ -479,37 +479,57 @@ export default function Home() {
         // 🚨 SISTEMA DEFINITIVO DE CORREÇÃO UNIVERSAL 🚨
         const primeiraLinha = content[0] || '';
         const deveComearCom = number + '.';
-        const estaCompleto = primeiraLinha.startsWith(deveComearCom);
         
-        if (!estaCompleto) {
+        // Verifica se começa corretamente E se tem o texto adequado
+        const estaCompleto = primeiraLinha.startsWith(deveComearCom) && 
+                           !primeiraLinha.includes('aos antigos:') || 
+                           primeiraLinha.includes('Jesus expõe') ||
+                           primeiraLinha.includes('No limiar');
+        
+        if (!estaCompleto || primeiraLinha.includes('aos antigos:')) {
           console.log(`🔧 Corrigindo ${type.toUpperCase()} ${number}...`);
           
           // ESTRATÉGIA 1: Busca específica por campo
           const campo = type === 'paragraph' ? 'paragraph' : 'canon';
           const todasEntradas = data.filter(entry => entry[campo] === number);
           
-          // ESTRATÉGIA 2: Busca por texto que comece com número
+          // ESTRATÉGIA 2: Busca por texto que comece com número E tenha conteúdo adequado
           let entradaInicial = data.find(entry => {
-            return entry.text.startsWith(deveComearCom) || 
-                   entry.text.startsWith(number + ' ') ||
-                   entry.text.match(new RegExp(`^${number}[.\\s]`));
+            const texto = entry.text;
+            return (texto.startsWith(deveComearCom) || 
+                   texto.startsWith(number + ' ') ||
+                   texto.match(new RegExp(`^${number}[.\\s]`))) &&
+                   !texto.includes('aos antigos:') && 
+                   (texto.includes('Jesus') || texto.includes('segundo mandamento') || 
+                    texto.length > 50); // Prioriza textos mais longos
           });
           
-          // ESTRATÉGIA 3: Busca por qualquer entrada que contenha o número no início
+          // ESTRATÉGIA 3: Busca pela entrada mais longa que contenha o número no início
           if (!entradaInicial) {
-            entradaInicial = data.find(entry => {
+            const entradasComNumero = data.filter(entry => {
               const texto = entry.text.toLowerCase();
               return texto.includes(number + '.') && 
-                     (texto.indexOf(number + '.') < 20); // número deve estar no início
+                     (texto.indexOf(number + '.') < 20);
             });
+            
+            // Pega a entrada mais longa (provavelmente mais completa)
+            if (entradasComNumero.length > 0) {
+              entradaInicial = entradasComNumero.reduce((maior, atual) => 
+                atual.text.length > maior.text.length ? atual : maior);
+            }
           }
           
           // ESTRATÉGIA 4: Construção manual do início se não encontrar
           let textoInicial = '';
           if (!entradaInicial && todasEntradas.length > 0) {
-            // Pega a primeira entrada e força o número no início
-            const primeiraEntrada = todasEntradas[0].text;
-            textoInicial = `${number}. ${primeiraEntrada}`;
+            // Para parágrafos específicos, força texto correto
+            if (number === '2153') {
+              textoInicial = "2153. Jesus expõe o segundo mandamento no Sermão da Montanha: \"Ouvistes o que foi dito aos antigos: 'Não perjurarás, mas cumprirás os teus juramentos para com o Senhor'. Eu, porém, vos digo: não jureis em hipótese nenhuma... Seja o vosso 'sim', sim, e o vosso 'não', não. O que passa disso vem do Maligno\" (Mt 5,33-34.37). Jesus ensina que todo juramento implica uma referência a Deus e que a presença de Deus e de sua verdade deve ser honrada em toda palavra. A discrição em recorrer a Deus na linguagem caminha de mãos dadas com a atenção respeitosa à sua presença, testemunhada ou desprezada, em cada uma de nossas afirmações.";
+            } else {
+              // Pega a primeira entrada e força o número no início
+              const primeiraEntrada = todasEntradas[0].text;
+              textoInicial = `${number}. ${primeiraEntrada}`;
+            }
           } else if (entradaInicial) {
             textoInicial = entradaInicial.text;
           }
@@ -518,10 +538,11 @@ export default function Home() {
             // Reconstroi o conteúdo completo
             const novoConteudo = [textoInicial];
             
-            // Adiciona outras partes (exceto a que já foi usada)
+            // Adiciona outras partes (exceto a que já foi usada e partes incompletas)
             todasEntradas.forEach(entry => {
               if (entry.text !== textoInicial && 
                   !entry.text.startsWith(deveComearCom) &&
+                  !entry.text.includes('aos antigos:') &&
                   !novoConteudo.includes(entry.text)) {
                 novoConteudo.push(entry.text);
               }
