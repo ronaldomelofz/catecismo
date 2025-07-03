@@ -418,14 +418,69 @@ export default function Home() {
     try {
       const data = type === 'paragraph' ? documentsData.catecismo : documentsData.direito_canonico
       
-      // Busca todas as entradas do parágrafo/cânon específico
-      const entries = data.filter(entry => {
+      // Nova lógica: busca parágrafo completo usando delimitadores
+      const getCompleteParagraph = (targetNumber: string) => {
         if (type === 'paragraph') {
-          return entry.paragraph === number
+          // Para catecismo: busca desde onde começa o parágrafo até onde começa o próximo
+          
+          // Primeiro, encontra a linha que contém o número do parágrafo
+          const startIndex = data.findIndex(entry => {
+            // Procura por linha que comece com o número do parágrafo
+            return entry.text.match(new RegExp(`^${targetNumber}\\.`))
+          })
+          
+          if (startIndex === -1) {
+            // Se não encontrou pelo padrão exato, busca pelas entradas com paragraph igual
+            return data.filter(entry => entry.paragraph === targetNumber)
+          }
+          
+          // Encontra onde termina o parágrafo (início do próximo parágrafo)
+          let endIndex = data.length
+          const nextParagraphNumber = parseInt(targetNumber) + 1
+          
+          for (let i = startIndex + 1; i < data.length; i++) {
+            // Procura pelo próximo parágrafo numerado
+            if (data[i].text.match(/^\d+\./)) {
+              endIndex = i
+              break
+            }
+            // Ou por mudança de parágrafo no metadata
+            if (data[i].paragraph && data[i].paragraph !== targetNumber) {
+              endIndex = i
+              break
+            }
+          }
+          
+          return data.slice(startIndex, endIndex)
+          
         } else {
-          return entry.canon === number
+          // Para direito canônico: lógica similar com cânones
+          const startIndex = data.findIndex(entry => {
+            return entry.text.match(new RegExp(`^Cân\\.\\s*${targetNumber}[^\\d]`))
+          })
+          
+          if (startIndex === -1) {
+            return data.filter(entry => entry.canon === targetNumber)
+          }
+          
+          let endIndex = data.length
+          
+          for (let i = startIndex + 1; i < data.length; i++) {
+            if (data[i].text.match(/^Cân\.\s*\d+/)) {
+              endIndex = i
+              break
+            }
+            if (data[i].canon && data[i].canon !== targetNumber) {
+              endIndex = i
+              break
+            }
+          }
+          
+          return data.slice(startIndex, endIndex)
         }
-      })
+      }
+      
+      const entries = getCompleteParagraph(number)
       
       if (entries.length > 0) {
         const title = type === 'paragraph' 
