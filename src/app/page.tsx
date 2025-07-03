@@ -476,26 +476,51 @@ export default function Home() {
         console.log(`📄 PRIMEIRA ENTRADA: "${content[0]?.substring(0, 100)}..."`);
         console.log(`📝 TODAS AS ENTRADAS:`, content);
         
-        // VERIFICAÇÃO ESPECIAL PARA 1613 - FORÇAR ORDEM CORRETA
+        // 🚨🚨🚨 DEBUG ULTRA AGRESSIVO PARA 1613 🚨🚨🚨
         if (number === '1613') {
-          console.log(`🎯 PARÁGRAFO 1613 - Verificação especial iniciada`);
+          console.log(`🚨🚨🚨 PARÁGRAFO 1613 - DEBUG ULTRA AGRESSIVO 🚨🚨🚨`);
+          console.log(`📊 Total de dados disponíveis: ${data.length}`);
+          console.log(`📝 Conteúdo atual ANTES da correção:`, content);
           
-          // Força busca pela entrada que comece com 1613.
+          // Busca TODAS as entradas do parágrafo 1613
+          const todasEntradas1613 = data.filter(entry => entry.paragraph === '1613');
+          console.log(`📚 Total de entradas do parágrafo 1613: ${todasEntradas1613.length}`);
+          
+          // Busca a entrada que comece com 1613.
           const entradaInicial = data.find(entry => entry.text.match(/^1613\./));
           console.log(`🔍 Entrada inicial encontrada:`, entradaInicial ? 'SIM' : 'NÃO');
           
           if (entradaInicial) {
-            // Remove a entrada inicial se já estiver no conteúdo
-            const contentSemInicial = content.filter(text => !text.match(/^1613\./));
+            console.log(`📄 TEXTO DA ENTRADA INICIAL COMPLETO:`, entradaInicial.text);
             
-            // Reconstroi o conteúdo com a entrada inicial no começo
-            content.length = 0; // Limpa o array
-            content.push(entradaInicial.text); // Adiciona entrada inicial primeiro
-            content.push(...contentSemInicial); // Adiciona resto
+            // FORÇA RECONSTRUÇÃO TOTAL
+            const novoConteudo = [];
             
-            console.log(`🔧 PARÁGRAFO 1613 CORRIGIDO - Nova ordem:`, content.map(c => c.substring(0, 50)));
+            // 1. PRIMEIRO: A entrada que começa com 1613.
+            novoConteudo.push(entradaInicial.text);
+            
+            // 2. DEPOIS: Todas as outras entradas do parágrafo (exceto a inicial)
+            todasEntradas1613.forEach(entry => {
+              if (!entry.text.match(/^1613\./)) {
+                novoConteudo.push(entry.text);
+              }
+            });
+            
+            // SUBSTITUI TUDO
+            content.length = 0;
+            content.push(...novoConteudo);
+            
+            console.log(`🔧 CONTEÚDO FINAL FORÇADO (${content.length} partes):`);
+            content.forEach((c, i) => console.log(`  ${i+1}. "${c.substring(0, 80)}..."`));
+            console.log(`✅ PRIMEIRA LINHA GARANTIDA:`, content[0]);
+            
+            // ALERTA VISUAL
+            console.log(`🚨🚨🚨 SE AINDA NÃO FUNCIONAR, É CACHE DO NETLIFY! 🚨🚨🚨`);
           } else {
-            console.log(`❌ ENTRADA INICIAL 1613 NÃO ENCONTRADA!`);
+            console.log(`❌ ENTRADA INICIAL 1613 NÃO ENCONTRADA NOS DADOS!`);
+            console.log(`🔍 Buscando qualquer coisa com 1613:`);
+            data.filter(e => e.text.includes('1613')).forEach(e => 
+              console.log(`   - "${e.text.substring(0, 100)}..."`));
           }
         }
         
