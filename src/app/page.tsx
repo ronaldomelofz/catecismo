@@ -189,6 +189,12 @@ export default function Home() {
 
       console.log(`🔍 Buscando por: "${searchTerm.trim()}" (sem acentos: "${searchTermNoAccents}")`)
       console.log(`📊 Dados disponíveis - Catecismo: ${documentsData.catecismo.length}, Direito Canônico: ${documentsData.direito_canonico.length}`)
+      
+      // Verificar se o termo de busca é um número (para busca por parágrafo/cânon)
+      const isNumericSearch = /^\d+$/.test(searchTerm.trim())
+      if (isNumericSearch) {
+        console.log(`🔢 Busca numérica detectada: procurando parágrafo/cânon ${searchTerm.trim()}`)
+      }
 
       // Sets para rastrear parágrafos/cânones já adicionados
       const addedParagraphs = new Set<string>()
@@ -197,8 +203,21 @@ export default function Home() {
       // Buscar no catecismo
       let catecismoMatches = 0
       documentsData.catecismo.forEach((entry: SearchEntry, index: number) => {
-        const textNoAccents = removeAccents(entry.text.toLowerCase())
-        if (textNoAccents.includes(searchTermNoAccents)) {
+        let shouldInclude = false
+        
+        // Busca por número de parágrafo específico
+        if (isNumericSearch && entry.paragraph === searchTerm.trim()) {
+          shouldInclude = true
+        }
+        // Busca por texto normal
+        else if (!isNumericSearch) {
+          const textNoAccents = removeAccents(entry.text.toLowerCase())
+          if (textNoAccents.includes(searchTermNoAccents)) {
+            shouldInclude = true
+          }
+        }
+        
+        if (shouldInclude) {
           catecismoMatches++
           
           // Verifica se o parágrafo já foi adicionado
@@ -234,8 +253,21 @@ export default function Home() {
       // Buscar no direito canônico
       let direitoMatches = 0
       documentsData.direito_canonico.forEach((entry: SearchEntry, index: number) => {
-        const textNoAccents = removeAccents(entry.text.toLowerCase())
-        if (textNoAccents.includes(searchTermNoAccents)) {
+        let shouldInclude = false
+        
+        // Busca por número de cânon específico
+        if (isNumericSearch && entry.canon === searchTerm.trim()) {
+          shouldInclude = true
+        }
+        // Busca por texto normal
+        else if (!isNumericSearch) {
+          const textNoAccents = removeAccents(entry.text.toLowerCase())
+          if (textNoAccents.includes(searchTermNoAccents)) {
+            shouldInclude = true
+          }
+        }
+        
+        if (shouldInclude) {
           direitoMatches++
           
           // Verifica se o cânone já foi adicionado
