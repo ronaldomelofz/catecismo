@@ -35,8 +35,19 @@ function createSearchData() {
           !isHeaderOrFooter(trimmed) && 
           !isIndexContent(trimmed) &&
           !isIndexPage(trimmed)) {
+        
+        // NORMALIZAÇÃO ESPECIAL PARA CÂNONES
+        let textoNormalizado = trimmed;
+        if (documentType === 'direito_canonico' && currentCanon) {
+          // Converte "Cân. 1653 — § 1. A não ser..." para "1653. § 1. A não ser..."
+          const canonPattern = new RegExp(`^Cân\\.\\s*${currentCanon}\\s*—\\s*`, 'i');
+          if (canonPattern.test(trimmed)) {
+            textoNormalizado = trimmed.replace(canonPattern, `${currentCanon}. `);
+          }
+        }
+        
         entries.push({
-          text: trimmed,
+          text: textoNormalizado,
           lineNumber: index + 1,
           paragraph: currentParagraph,
           canon: currentCanon

@@ -490,12 +490,15 @@ export default function Home() {
         // ESTRATÉGIA SIMPLES E DIRETA:
         // 1. Procura qualquer entrada que contenha o número seguido de texto
         const numeroCompleto = number + '.';
+        const formatoCanon = `Cân. ${number}`;
         let textoCompleto = '';
         
-        // Busca a entrada mais longa que contenha o número
+        // Busca a entrada mais longa que contenha o número (suporta ambos os formatos)
         const entradaComNumero = entradasUnicas.find(entry => {
           const texto = entry.text.trim();
-          return texto.includes(numeroCompleto) && texto.length > 50;
+          return (texto.includes(numeroCompleto) || 
+                 (type === 'canon' && texto.includes(formatoCanon))) && 
+                 texto.length > 50;
         });
         
         if (entradaComNumero) {
@@ -504,11 +507,19 @@ export default function Home() {
           // Se o texto já começa com o número, usa como está
           if (textoOriginal.startsWith(numeroCompleto)) {
             textoCompleto = textoOriginal;
+          } else if (type === 'canon' && textoOriginal.startsWith(formatoCanon)) {
+            // Para cânones, converte "Cân. X —" para "X."
+            textoCompleto = textoOriginal.replace(/^Cân\.\s*(\d+)\s*—\s*/, '$1. ');
           } else {
             // Se o número está no meio, extrai a partir dele
             const indiceNumero = textoOriginal.indexOf(numeroCompleto);
+            const indiceCanon = type === 'canon' ? textoOriginal.indexOf(formatoCanon) : -1;
+            
             if (indiceNumero >= 0) {
               textoCompleto = textoOriginal.substring(indiceNumero);
+            } else if (indiceCanon >= 0) {
+              const textoAPartir = textoOriginal.substring(indiceCanon);
+              textoCompleto = textoAPartir.replace(/^Cân\.\s*(\d+)\s*—\s*/, '$1. ');
             }
           }
         }
@@ -522,6 +533,9 @@ export default function Home() {
           // Força o número no início se não tiver
           if (maiorEntrada.text.includes(numeroCompleto)) {
             textoCompleto = maiorEntrada.text.trim();
+          } else if (type === 'canon' && maiorEntrada.text.includes(formatoCanon)) {
+            // Para cânones, converte formato
+            textoCompleto = maiorEntrada.text.replace(/^Cân\.\s*(\d+)\s*—\s*/, '$1. ');
           } else {
             textoCompleto = `${numeroCompleto} ${maiorEntrada.text.trim()}`;
           }
@@ -692,8 +706,8 @@ export default function Home() {
                   </a>
                   <a 
                     href="https://www.vatican.va/archive/cod-iuris-canonici/portuguese/codex-iuris-canonici_po.pdf" 
-                    target="_blank" 
-                    rel="noopener noreferrer"
+                target="_blank" 
+                rel="noopener noreferrer"
                     className="inline-flex items-center justify-center gap-2 bg-purple-600 text-white px-3 sm:px-4 py-2 rounded-lg hover:bg-purple-700 transition-colors text-xs sm:text-sm font-medium"
                   >
                     <Scale className="h-3 w-3 sm:h-4 sm:w-4 flex-shrink-0" />
@@ -721,9 +735,9 @@ export default function Home() {
                     <Book className="h-3 w-3 sm:h-4 sm:w-4 flex-shrink-0" />
                     <span className="truncate">Catecismo PDF (2.4MB)</span>
                     <Download className="h-3 w-3 sm:h-4 sm:w-4 flex-shrink-0" />
-                  </a>
-                  <a 
-                    href="/direito_canonico.pdf" 
+              </a>
+              <a 
+                href="/direito_canonico.pdf" 
                     download="Codigo_de_Direito_Canonico.pdf"
                     className={`inline-flex items-center justify-center gap-2 px-3 sm:px-4 py-2 rounded-lg transition-colors text-xs sm:text-sm font-medium border-2 ${
                       isDarkMode 
@@ -797,7 +811,7 @@ export default function Home() {
                       isDarkMode ? 'text-gray-50' : 'text-gray-900'
                     }`}>
                       Resultados para &ldquo;{searchResponse.searchTerm}&rdquo;
-                    </h2>
+                  </h2>
                   <div className="grid grid-cols-1 sm:grid-cols-3 gap-3 sm:gap-4">
                     {/* Total */}
                     <div className={`rounded-lg p-3 sm:p-4 shadow-sm transition-colors duration-300 ${
@@ -915,8 +929,8 @@ export default function Home() {
                                 : 'bg-purple-100 text-purple-800 hover:bg-purple-200 border border-purple-300'
                             }`}
                             title="Clique para ver a íntegra do cânon"
-                          >
-                            Cân. {result.canon}
+                              >
+                                Cân. {result.canon}
                             <Eye className="h-3 w-3 opacity-60 group-hover:opacity-100 transition-opacity" />
                           </button>
                         )}
@@ -971,10 +985,10 @@ export default function Home() {
                           <div className="text-sm">
                             {result.context.after.map((line, idx) => (
                               <p key={idx} className="mb-1">{line}</p>
-                            ))}
-                          </div>
-                        </div>
-                      )}
+                                ))}
+                              </div>
+                            </div>
+                          )}
                     </div>
                   </CardContent>
                 </Card>
