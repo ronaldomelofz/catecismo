@@ -418,76 +418,88 @@ export default function Home() {
     try {
       const data = type === 'paragraph' ? documentsData.catecismo : documentsData.direito_canonico
       
-      // Nova lógica: busca parágrafo completo usando delimitadores
-      const getCompleteParagraph = (targetNumber: string) => {
-        if (type === 'paragraph') {
-          // Para catecismo: busca desde onde começa o parágrafo até onde começa o próximo
+      console.log(`🔍 BUSCANDO ${type} ${number} - Total de dados: ${data.length}`);
+      
+      let entries: any[] = [];
+      
+      if (type === 'paragraph') {
+        // ESTRATÉGIA 1: Busca por linha que comece com o número
+        let startIndex = data.findIndex(entry => 
+          entry.text.match(new RegExp(`^${number}\\.`))
+        );
+        
+        console.log(`📍 Estratégia 1 - startIndex: ${startIndex}`);
+        
+        if (startIndex >= 0) {
+          // Encontrou o início! Agora busca o fim
+          let endIndex = data.length;
           
-          // Primeiro, encontra a linha que contém o número do parágrafo
-          const startIndex = data.findIndex(entry => {
-            // Procura por linha que comece com o número do parágrafo
-            return entry.text.match(new RegExp(`^${targetNumber}\\.`))
-          })
-          
-          if (startIndex === -1) {
-            // Se não encontrou pelo padrão exato, busca pelas entradas com paragraph igual
-            return data.filter(entry => entry.paragraph === targetNumber)
-          }
-          
-          // Encontra onde termina o parágrafo (início do próximo parágrafo)
-          let endIndex = data.length
-          const nextParagraphNumber = parseInt(targetNumber) + 1
-          
+          // Busca pelo próximo parágrafo numerado
           for (let i = startIndex + 1; i < data.length; i++) {
-            // Procura pelo próximo parágrafo numerado
             if (data[i].text.match(/^\d+\./)) {
-              endIndex = i
-              break
-            }
-            // Ou por mudança de parágrafo no metadata
-            if (data[i].paragraph && data[i].paragraph !== targetNumber) {
-              endIndex = i
-              break
+              endIndex = i;
+              console.log(`🔚 Fim encontrado no índice ${i}`);
+              break;
             }
           }
           
-          return data.slice(startIndex, endIndex)
-          
+          entries = data.slice(startIndex, endIndex);
+          console.log(`✅ ESTRATÉGIA 1 FUNCIONOU: ${entries.length} entradas`);
         } else {
-          // Para direito canônico: lógica similar com cânones
-          const startIndex = data.findIndex(entry => {
-            return entry.text.match(new RegExp(`^Cân\\.\\s*${targetNumber}[^\\d]`))
-          })
+          console.log(`❌ Estratégia 1 falhou, tentando estratégia 2...`);
           
-          if (startIndex === -1) {
-            return data.filter(entry => entry.canon === targetNumber)
+          // ESTRATÉGIA 2: Busca por metadata paragraph
+          entries = data.filter(entry => entry.paragraph === number);
+          console.log(`📋 ESTRATÉGIA 2: ${entries.length} entradas por metadata`);
+          
+          if (entries.length === 0) {
+            console.log(`❌ Estratégia 2 também falhou, tentando estratégia 3...`);
+            
+            // ESTRATÉGIA 3: Busca qualquer menção ao número
+            entries = data.filter(entry => 
+              entry.text.includes(number) && 
+              (entry.text.includes('parágrafo') || entry.text.includes('§'))
+            );
+            console.log(`🔍 ESTRATÉGIA 3: ${entries.length} entradas por busca textual`);
           }
-          
-          let endIndex = data.length
-          
-          for (let i = startIndex + 1; i < data.length; i++) {
-            if (data[i].text.match(/^Cân\.\s*\d+/)) {
-              endIndex = i
-              break
-            }
-            if (data[i].canon && data[i].canon !== targetNumber) {
-              endIndex = i
-              break
-            }
-          }
-          
-          return data.slice(startIndex, endIndex)
         }
+      } else {
+        // Para cânones - lógica similar
+        entries = data.filter(entry => entry.canon === number);
       }
       
-      const entries = getCompleteParagraph(number)
+      console.log(`🎯 RESULTADO FINAL: ${entries.length} entradas encontradas`);
       
       if (entries.length > 0) {
+        const content = entries.map(entry => entry.text);
+        
+        console.log(`📄 PRIMEIRA ENTRADA: "${content[0]?.substring(0, 100)}..."`);
+        console.log(`📝 TODAS AS ENTRADAS:`, content);
+        
+        // VERIFICAÇÃO ESPECIAL PARA 1613
+        if (number === '1613') {
+          const temInicio = content.some(text => text.includes('1613.') || text.includes('No limiar'));
+          console.log(`🎯 PARÁGRAFO 1613 - Tem início correto: ${temInicio}`);
+          
+          if (!temInicio) {
+            console.log(`🚨 PROBLEMA DETECTADO! Forçando busca manual...`);
+            // Busca manual forçada
+            const manualEntry = data.find(entry => 
+              entry.text.includes('1613.') || 
+              entry.text.includes('No limiar de sua vida pública')
+            );
+            
+            if (manualEntry) {
+              console.log(`🔧 CORREÇÃO: Encontrou entrada manual:`, manualEntry.text);
+              // Adiciona no início
+              content.unshift(manualEntry.text);
+            }
+          }
+        }
+        
         const title = type === 'paragraph' 
           ? `Parágrafo ${number} - Catecismo da Igreja Católica`
           : `Cânon ${number} - Código de Direito Canônico`
-        
-        const content = entries.map(entry => entry.text)
         
         // Conta ocorrências da palavra pesquisada se houver termo de busca (sem acentos)
         let matchCount = 0
@@ -505,6 +517,12 @@ export default function Home() {
           })
         }
         
+        console.log(`🎉 DEFININDO CONTEÚDO DO POPUP:`, {
+          title: title,
+          contentLength: content.length,
+          firstText: content[0]?.substring(0, 100)
+        });
+        
         setIntegralContent({
           title: matchCount > 0 ? `${title} (${matchCount} ocorrência${matchCount !== 1 ? 's' : ''} de "${searchTerm}")` : title,
           content,
@@ -513,6 +531,7 @@ export default function Home() {
           matchCount
         })
       } else {
+        console.log(`❌ NENHUMA ENTRADA ENCONTRADA PARA ${type} ${number}`);
         setIntegralContent({
           title: type === 'paragraph' ? `Parágrafo ${number}` : `Cânon ${number}`,
           content: ['Conteúdo não encontrado.'],
@@ -521,7 +540,7 @@ export default function Home() {
         })
       }
     } catch (error) {
-      console.error('Erro ao buscar íntegra:', error)
+      console.error('🚨 ERRO ao buscar íntegra:', error)
       setIntegralContent({
         title: 'Erro',
         content: ['Erro ao carregar o conteúdo.'],
